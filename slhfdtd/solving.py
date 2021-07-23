@@ -50,13 +50,10 @@ class Solver:
                  init_E=None, init_H=None):
         self.grid_dist = grid_dist
         
-        self.length_x, self.length_y, self.length_z = (
-            length_x, length_y, length_z)
-        self.cell_count_x, self.cell_count_y, self.cell_count_z = get_shape(
-            length_x, length_y, length_z, grid_dist)
+        self.length = (length_x, length_y, length_z)
+        self.cell_count = get_shape(length_x, length_y, length_z, grid_dist)
 
-        dim = int(self.cell_count_x > 0) + \
-            int(self.cell_count_y > 0) + int(self.cell_count_z > 0)
+        dim = sum(int(c_count > 0) for c_count in self.cell_count)
 
         self.courant_number = (courant_number if courant_number is not None
             else 0.9999 * dim**(-0.5))
@@ -72,40 +69,41 @@ class Solver:
         self.constant_H = self.courant_number / VACUUM_IMPEDANCE
 
         self.E = (init_E if init_E is not None else np.zeros(
-            (self.cell_count_x, self.cell_count_y, self.cell_count_z, 3)))
+            (*self.cell_count, 3)))
         self.H = (init_H if init_H is not None else np.zeros(
-            (self.cell_count_x, self.cell_count_y, self.cell_count_z, 3)))
+            (*self.cell_count, 3)))
         
         self.sources = []
+        self.objects = []
         
     def set_permittivity(self, permittivity):
         if type(permittivity) is np.ndarray:
             permittivity = permittivity[:, :, :, None]
-        
-        self.inverse_permittivity = (np.ones(
-            (self.cell_count_x, self.cell_count_y, self.cell_count_z, 3))
-            / permittivity)
+        self.inverse_permittivity = (
+            np.ones((*self.cell_count, 3)) / permittivity)
     
     def set_permeability(self, permeability):
         if type(permeability) is np.ndarray:
             permeability = permeability[:, :, :, None]
-        self.inverse_permeability = (np.ones(
-            (self.cell_count_x, self.cell_count_y, self.cell_count_z, 3))
-            / permeability)
+        self.inverse_permeability = (
+            np.ones((*self.cell_count, 3)) / permeability)
     
     def set_conductivity(self, conductivity):
         if type(conductivity) is np.ndarray:
             conductivity = conductivity[:, :, :, None]
-        dissipation = (np.ones(
-            (self.cell_count_x, self.cell_count_y, self.cell_count_z, 3))
-            * 0.5* conductivity * self.inverse_permittivity
-            / VACUUM_PERMITTIVITY)
+        dissipation = (np.ones((*self.cell_count, 3))
+                       * 0.5* conductivity * self.inverse_permittivity
+                       / VACUUM_PERMITTIVITY)
         self.dissipation_mult = (1 - dissipation) / (1 + dissipation)
         self.dissipation_add = 1 / (1 + dissipation)
     
     def add_source(self, source):
         source.set_solver(self)
         self.sources.append(source)
+    
+    def add_object(self, object):
+        object.set_solver(self)
+        self.objects.append(object)
     
     def update_E(self):
         self.E *= self.dissipation_mult

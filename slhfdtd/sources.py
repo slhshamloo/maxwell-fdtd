@@ -1,13 +1,14 @@
-from math import pi, sin
+from math import pi, sin, floor
 import numpy as np
 
 
 class Source:
     def __init__(self, begin_x, begin_y, begin_z, end_x, end_y, end_z,
-                 power, freq=600e12, phase=0.0):
-        self.begin_x, self.begin_y, self.begin_z = begin_x, begin_y, begin_z
-        self.end_x, self.end_y, self.end_z = end_x, end_y, end_z
-        self.power, self.omega, self.phase = power, 2*pi * freq, phase 
+                 power, freq=600e12, phase=0.0, func=sin):
+        self.begin_pos = (begin_x, begin_y, begin_z)
+        self.end_pos = (end_x, end_y, end_z)
+        self.power, self.omega, self.phase = power, 2*pi * freq, phase
+        self.func = func
         
         self.current_time_step=0
     
@@ -17,18 +18,16 @@ class Source:
         self.set_amplitude()
     
     def set_pos(self, grid_dist):
-        self.begin_cell_x = round(self.begin_x / grid_dist)
-        self.begin_cell_y = round(self.begin_y / grid_dist)
-        self.begin_cell_z = round(self.begin_z / grid_dist)
-        self.end_cell_x = round(self.end_x / grid_dist)
-        self.end_cell_y = round(self.end_y / grid_dist)
-        self.end_cell_z = round(self.end_z / grid_dist)
+        self.begin_cell = tuple(
+            round(begin / grid_dist) for begin in self.begin_pos)
+        self.end_cell = tuple(
+            round(end / grid_dist) for end in self.end_pos)
     
     def set_amplitude(self):
         self.amplitude = (self.power * self.solver.inverse_permittivity[
-            self.begin_cell_x:self.end_cell_x + 1,
-            self.begin_cell_y:self.end_cell_y + 1,
-            self.begin_cell_z:self.end_cell_z + 1,
+            self.begin_cell[0]:self.end_cell[0] + 1,
+            self.begin_cell[1]:self.end_cell[1] + 1,
+            self.begin_cell[2]:self.end_cell[2] + 1,
             2])**0.5
     
     def step(self):
@@ -37,10 +36,10 @@ class Source:
         self.current_time_step += 1
     
     def update_E(self):
-        self.solver.E[self.begin_cell_x:self.end_cell_x + 1,
-                      self.begin_cell_y:self.end_cell_y + 1,
-                      self.begin_cell_z:self.end_cell_z + 1,
-                      2] += self.amplitude * sin(
+        self.solver.E[self.begin_cell[0]:self.end_cell[0] + 1,
+                      self.begin_cell[1]:self.end_cell[1] + 1,
+                      self.begin_cell[2]:self.end_cell[2] + 1,
+                      2] += self.amplitude * self.func(
                           self.omega * self.current_time_step
                           * self.solver.time_step + self.phase)
     
@@ -48,8 +47,8 @@ class Source:
         pass
 
 class PointSource(Source):
-    def __init__(self, x, y, z, power, freq=600e12, phase=0.0):
-        super().__init__(x, y, z, x, y, z, power, freq, phase)
+    def __init__(self, x, y, z, power, freq=600e12, phase=0.0, func=sin):
+        super().__init__(x, y, z, x, y, z, power, freq, phase, func)
 
 
 class LineSource(Source):
@@ -60,21 +59,26 @@ class LineSource(Source):
         self.set_amplitude()
     
     def set_span(self):
-        length = int(((self.end_cell_x - self.begin_cell_x)**2 +
-                      (self.end_cell_y - self.begin_cell_y)**2 +
-                      (self.end_cell_z - self.begin_cell_z)**2)**0.5)
-        self.x = np.linspace(self.begin_cell_x, self.end_cell_x, length)
-        self.y = np.linspace(self.begin_cell_y, self.end_cell_y, length)
-        self.z = np.linspace(self.begin_cell_z, self.end_cell_z, length)
+        length = int(sum((end_c - begin_c)**2
+            for (begin_c, end_c) in zip(self.begin_cell, self.end_cell))**0.5)
+        self.pos = (np.linspace(begin_c, end_c, length).astype(np.int)
+            for (begin_c, end_c) in zip(self.begin_cell, self.end_cell))
     
     def set_amplitude(self):
-        self.amplitude = (self.power * self.solver.inverse_permittivity[
-            self.x.astype(np.int), self.y.astype(np.int),
-            self.z.astype(np.int), 2])**0.5
+        self.amplitude = (
+            self.power
+            * self.solver.inverse_permittivity[
+                self.pos[0], self.pos[1], self.pos[2], 2])**0.5
         
     def update_E(self):
-        self.solver.E[self.x.astype(np.int),
-            self.y.astype(np.int), self.z.astype(np.int), 2] += (
-                self.amplitude * sin(
-                self.omega * self.current_time_step
-                * self.solver.time_step + self.phase))
+        self.solver.E[self.pos[0], self.pos[1], self.pos[2], 2] += (
+            self.amplitude * self.func(
+            self.omega * self.current_time_step
+            * self.solver.time_step + self.phase))
+
+
+def pulse(theta):
+    if floor(theta/pi) % 2 == 0:
+        return 1
+    else:
+        return -1
