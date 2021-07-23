@@ -46,7 +46,7 @@ def get_shape(length_x, length_y, length_z, grid_dist=1e-10):
 class Solver:
     def __init__(self, length_x, length_y, length_z,
                  grid_dist=1e-10, courant_number=None,
-                 permittivity=1.0, permeability=1.0,
+                 permittivity=1.0, permeability=1.0, conductivity = 0.0,
                  init_E=None, init_H=None):
         self.grid_dist = grid_dist
         
@@ -66,6 +66,10 @@ class Solver:
         
         self.set_permittivity(permittivity)
         self.set_permeability(permeability)
+        self.set_conductivity(conductivity)
+        
+        self.constant_E = self.courant_number * VACUUM_IMPEDANCE
+        self.constant_H = self.courant_number / VACUUM_IMPEDANCE
 
         self.E = (init_E if init_E is not None else np.zeros(
             (self.cell_count_x, self.cell_count_y, self.cell_count_z, 3)))
@@ -89,17 +93,27 @@ class Solver:
             (self.cell_count_x, self.cell_count_y, self.cell_count_z, 3))
             / permeability)
     
+    def set_conductivity(self, conductivity):
+        if type(conductivity) is np.ndarray:
+            conductivity = conductivity[:, :, :, None]
+        dissipation = (np.ones(
+            (self.cell_count_x, self.cell_count_y, self.cell_count_z, 3))
+            * 0.5* conductivity * self.inverse_permittivity
+            / VACUUM_PERMITTIVITY)
+        self.dissipation_mult = (1 - dissipation) / (1 + dissipation)
+        self.dissipation_add = 1 / (1 + dissipation)
+    
     def add_source(self, source):
         source.set_solver(self)
         self.sources.append(source)
     
     def update_E(self):
-        constant = self.courant_number * VACUUM_IMPEDANCE
-        self.E += constant * self.inverse_permittivity * curl_H(self.H)
+        self.E *= self.dissipation_mult
+        self.E += (self.dissipation_add * self.constant_E
+                   * self.inverse_permittivity * curl_H(self.H))
     
     def update_H(self):
-        constant = self.courant_number / VACUUM_IMPEDANCE
-        self.H -= constant * self.inverse_permeability * curl_E(self.E)
+        self.H -= self.constant_H * self.inverse_permeability * curl_E(self.E)
     
     def step(self):
         for source in self.sources:
