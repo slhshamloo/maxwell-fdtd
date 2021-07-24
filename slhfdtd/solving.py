@@ -101,9 +101,9 @@ class Solver:
         source.set_solver(self)
         self.sources.append(source)
     
-    def add_object(self, object):
-        object.set_solver(self)
-        self.objects.append(object)
+    def add_object(self, obj):
+        obj.set_solver(self)
+        self.objects.append(obj)
     
     def update_E(self):
         self.E *= self.dissipation_mult
