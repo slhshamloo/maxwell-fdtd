@@ -18,17 +18,20 @@ class Source:
         self.set_amplitude()
     
     def set_pos(self, grid_dist):
-        self.begin_cell = tuple(
-            round(begin / grid_dist) for begin in self.begin_pos)
-        self.end_cell = tuple(
-            round(end / grid_dist) for end in self.end_pos)
+        self.begin_cell = tuple(round(begin / grid_dist)
+                                for begin in self.begin_pos)
+        self.end_cell = tuple(round(end / grid_dist)
+                              for end in self.end_pos)
+        self.shape = (*(end_c - begin_c + 1
+            for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
+            3)
+        self.slices = (*(slice(begin_c, end_c + 1)
+            for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
+            slice(None))
     
     def set_amplitude(self):
         self.amplitude = (self.power * self.solver.inverse_permittivity[
-            self.begin_cell[0]:self.end_cell[0] + 1,
-            self.begin_cell[1]:self.end_cell[1] + 1,
-            self.begin_cell[2]:self.end_cell[2] + 1,
-            2])**0.5
+            self.slices])**0.5
     
     def step(self):
         self.update_E()
@@ -36,12 +39,9 @@ class Source:
         self.current_time_step += 1
     
     def update_E(self):
-        self.solver.E[self.begin_cell[0]:self.end_cell[0] + 1,
-                      self.begin_cell[1]:self.end_cell[1] + 1,
-                      self.begin_cell[2]:self.end_cell[2] + 1,
-                      2] += self.amplitude * self.func(
-                          self.omega * self.current_time_step
-                          * self.solver.time_step + self.phase)
+        self.solver.E[self.slices] += self.amplitude * self.func(
+            self.omega * self.current_time_step
+            * self.solver.time_step + self.phase)
     
     def update_H(self):
         pass
@@ -65,8 +65,7 @@ class LineSource(Source):
             for (begin_c, end_c) in zip(self.begin_cell, self.end_cell))
     
     def set_amplitude(self):
-        self.amplitude = (
-            self.power
+        self.amplitude = (self.power
             * self.solver.inverse_permittivity[
                 self.pos[0], self.pos[1], self.pos[2], 2])**0.5
         
