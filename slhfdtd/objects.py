@@ -20,14 +20,18 @@ class Slab(Object):
         self.set_solver_parameters(solver)
     
     def set_pos(self, grid_dist):
-        self.begin_cell = tuple(round(begin / grid_dist)
-                                for begin in self.begin_pos)
-        self.end_cell = tuple(round(end / grid_dist)
-                              for end in self.end_pos)
-        self.shape = (*(end_c - begin_c + 1
+        self.begin_cell = list(round(begin / grid_dist)
+                               for begin in self.begin_pos)
+        self.end_cell = list(round(end / grid_dist)
+                             for end in self.end_pos)
+        for i in range(3):
+            if self.end_cell[i] == self.begin_cell[i]:
+                self.end_cell[i] += 1
+        
+        self.shape = (*(end_c - begin_c
             for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
             3)
-        self.slices = (*(slice(begin_c, end_c + 1)
+        self.slices = (*(slice(begin_c, end_c)
             for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
             slice(None))
     
