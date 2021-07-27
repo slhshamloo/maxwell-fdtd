@@ -183,6 +183,9 @@ class AutoPML(Boundary):
         if self.is_thickness_cell_count:
             self.thickness = self.thickness * solver.grid_dist
         
+        self.begin_bound = 3 * [0]
+        self.end_bound = list(solver.length)
+        
         if solver.length[0] > 2 * self.thickness:
             solver.add_boundary(PML(0, 0, 0,
                 self.thickness, solver.length[1], solver.length[2],
@@ -190,6 +193,9 @@ class AutoPML(Boundary):
             solver.add_boundary(PML(solver.length[0] - self.thickness, 0, 0,
                 *solver.length, 0, False,
                 self.scaling_factor, self.stability_factor))
+            
+            self.begin_bound[0] = self.thickness
+            self.end_bound[0] = solver.length[0] - self.thickness
         
         if solver.length[1] > 2 * self.thickness:
             solver.add_boundary(PML(0, 0, 0,
@@ -198,6 +204,9 @@ class AutoPML(Boundary):
             solver.add_boundary(PML(0, solver.length[1] - self.thickness, 0,
                 *solver.length, 1, False,
                 self.scaling_factor, self.stability_factor))
+            
+            self.begin_bound[1] = self.thickness
+            self.end_bound[1] = solver.length[1] - self.thickness
         
         if solver.length[2] > 2 * self.thickness:
             solver.add_boundary(PML(0, 0, 0,
@@ -206,3 +215,6 @@ class AutoPML(Boundary):
             solver.add_boundary(PML(0, 0, solver.length[2] - self.thickness,
                 *solver.length, 2, False,
                 self.scaling_factor, self.stability_factor))
+            
+            self.begin_bound[2] = self.thickness
+            self.end_bound[2] = solver.length[2] - self.thickness
