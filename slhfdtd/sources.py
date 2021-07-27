@@ -4,12 +4,13 @@ import numpy as np
 
 class Source:
     def __init__(self, begin_x, begin_y, begin_z, end_x, end_y, end_z,
-                 power, freq=600e12, phase=0.0, func=sin, direction=2):
+                 direction=2, additive=True,
+                 power=1.0, freq=600e12, phase=0.0, func=sin):
         self.begin_pos = (begin_x, begin_y, begin_z)
         self.end_pos = (end_x, end_y, end_z)
-        self.power, self.omega, self.phase = power, 2*pi * freq, phase
-        self.func = func
-        self.direction = direction
+        self.direction, self.additive = direction, additive
+        self.power, self.omega, self.phase, self.func = (
+            power, 2*pi * freq, phase, func)
         
         self.current_time_step=0
     
@@ -44,16 +45,23 @@ class Source:
         self.current_time_step += 1
     
     def update_E(self):
-        self.solver.E[self.slices] += self.amplitude * self.func(
-            self.omega * self.current_time_step
-            * self.solver.time_step + self.phase)
+        if self.additive:
+            self.solver.E[self.slices] += self.amplitude * self.func(
+                self.omega * self.current_time_step
+                * self.solver.time_step + self.phase)
+        else:
+            self.solver.E[self.slices] = self.amplitude * self.func(
+                self.omega * self.current_time_step
+                * self.solver.time_step + self.phase)
     
     def update_H(self):
         pass
 
 class PointSource(Source):
-    def __init__(self, x, y, z, power, freq=600e12, phase=0.0, func=sin):
-        super().__init__(x, y, z, x, y, z, power, freq, phase, func)
+    def __init__(self, x, y, z, direction=2, additive=True,
+                 power=1.0, freq=600e12, phase=0.0, func=sin):
+        super().__init__(x, y, z, x, y, z, direction, additive,
+                         power, freq, phase, func)
 
 
 class LineSource(Source):
@@ -82,10 +90,14 @@ class LineSource(Source):
                 (*self.pos, 2)])**0.5
         
     def update_E(self):
-        self.solver.E[self.pos[0], self.pos[1], self.pos[2], 2] += (
-            self.amplitude * self.func(
-            self.omega * self.current_time_step
-            * self.solver.time_step + self.phase))
+        if self.additive:
+            self.solver.E[(*self.pos, 2)] += self.amplitude * self.func(
+                self.omega * self.current_time_step
+                * self.solver.time_step + self.phase)
+        else:
+            self.solver.E[(*self.pos, 2)] = self.amplitude * self.func(
+                self.omega * self.current_time_step
+                * self.solver.time_step + self.phase)
 
 
 def pulse(theta):
