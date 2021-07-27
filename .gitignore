@@ -1,0 +1,5 @@
+/paper/*.aux
+/paper/*.log
+/paper/*.out
+/paper/*.gz
+/slhfdtd/__pycache__/
