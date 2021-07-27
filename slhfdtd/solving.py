@@ -37,12 +37,6 @@ def curl_H(H):
     return curl
 
 
-def get_shape(length_x, length_y, length_z, grid_dist=1e-10):
-        return (round(length_x/grid_dist) + 1,
-                round(length_y/grid_dist) + 1,
-                round(length_z/grid_dist) + 1)
-
-
 class Solver:
     def __init__(self, length_x, length_y, length_z,
                  grid_dist=1e-10, courant_number=None,
@@ -51,7 +45,12 @@ class Solver:
         self.grid_dist = grid_dist
         
         self.length = (length_x, length_y, length_z)
-        self.cell_count = get_shape(length_x, length_y, length_z, grid_dist)
+        self.cell_count = [round(length_x/grid_dist),
+                           round(length_y/grid_dist),
+                           round(length_z/grid_dist)]
+        for i in range(len(self.cell_count)):
+            if self.cell_count[i] == 0:
+                self.cell_count[i] = 1
 
         dim = sum(int(c_count > 0) for c_count in self.cell_count)
 
@@ -75,6 +74,7 @@ class Solver:
         
         self.sources = []
         self.objects = []
+        self.boundaries = []
         
     def set_permittivity(self, permittivity):
         if type(permittivity) is np.ndarray:
@@ -92,7 +92,7 @@ class Solver:
         if type(conductivity) is np.ndarray:
             conductivity = conductivity[:, :, :, None]
         dissipation = (np.ones((*self.cell_count, 3))
-                       * 0.5* conductivity * self.inverse_permittivity
+                       * 0.5 * conductivity * self.inverse_permittivity
                        / VACUUM_PERMITTIVITY)
         self.dissipation_mult = (1 - dissipation) / (1 + dissipation)
         self.dissipation_add = 1 / (1 + dissipation)
@@ -105,13 +105,29 @@ class Solver:
         obj.set_solver(self)
         self.objects.append(obj)
     
+    def add_boundary(self, boundary):
+        boundary.set_solver(self)
+        self.boundaries.append(boundary)
+    
     def update_E(self):
+        for boundary in self.boundaries:
+            boundary.update_phi_E()
+        
         self.E *= self.dissipation_mult
         self.E += (self.dissipation_add * self.constant_E
                    * self.inverse_permittivity * curl_H(self.H))
-    
+        
+        for boundary in self.boundaries:
+            boundary.update_E()
+        
     def update_H(self):
+        for boundary in self.boundaries:
+            boundary.update_phi_H()
+        
         self.H -= self.constant_H * self.inverse_permeability * curl_E(self.E)
+        
+        for boundary in self.boundaries:
+            boundary.update_H()
     
     def step(self):
         for source in self.sources:
