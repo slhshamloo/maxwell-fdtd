@@ -177,9 +177,20 @@ class AutoPML(Boundary):
     
     def set_solver(self, solver):
         if self.thickness is None:
-            self.thickness = np.min(
-                np.asarray(solver.length)
-                [np.nonzero(solver.length)]) / 50.0
+            if len(solver.sources) > 0:
+                self.thickness = max(
+                    source.wavelength for source in solver.sources)
+            else:
+                self.thickness = 0
+            
+            if self.thickness == 0:
+                self.thickness = 10
+                self.is_thickness_cell_count = True
+            else:
+                self.thickness = min(self.thickness,
+                    np.min(np.asarray(solver.length)
+                           [np.nonzero(solver.length)])
+                    / 6)
         if self.is_thickness_cell_count:
             self.thickness = self.thickness * solver.grid_dist
         
