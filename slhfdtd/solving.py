@@ -131,9 +131,16 @@ class Solver:
     
     def step(self):
         for source in self.sources:
-            source.step()
+            if source.step_before:
+                source.step()
+        
         self.update_E()
         self.update_H()
+
+        for source in self.sources:
+            if not source.step_before:
+                source.step()
+        
         self.current_time_step += 1
     
     def run(self, time):
