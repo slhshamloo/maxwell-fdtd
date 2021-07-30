@@ -1,16 +1,33 @@
 from math import pi, sin, floor
 import numpy as np
 
+from .solving import SPEED_LIGHT
+
 
 class Source:
     def __init__(self, begin_x, begin_y, begin_z, end_x, end_y, end_z,
-                 direction=2, additive=True,
-                 power=1.0, freq=600e12, phase=0.0, func=sin):
+                 direction=2, additive=True, power=1.0,
+                 wavelength=100e-9, freq=None, phase=0.0, func=sin):
         self.begin_pos = (begin_x, begin_y, begin_z)
         self.end_pos = (end_x, end_y, end_z)
         self.direction, self.additive = direction, additive
-        self.power, self.omega, self.phase, self.func = (
-            power, 2*pi * freq, phase, func)
+        self.power, self.phase, self.func = (power, phase, func)
+        
+        if wavelength is not None:
+            self.wavelength = wavelength
+            if wavelength == 0:
+                self.omega = 0
+            else:
+                self.omega = 2*pi * SPEED_LIGHT/wavelength
+        elif freq is not None:
+            if freq == 0:
+                self.wavelength = 0
+            else:
+                self.wavelength = SPEED_LIGHT/freq
+            self.omega = 2*pi * freq
+        else:
+            self.wavelength = 500e-9
+            self.omega = 2*pi * SPEED_LIGHT/wavelength
         
         self.current_time_step=0
     
@@ -58,10 +75,10 @@ class Source:
         pass
 
 class PointSource(Source):
-    def __init__(self, x, y, z, direction=2, additive=True,
-                 power=1.0, freq=600e12, phase=0.0, func=sin):
+    def __init__(self, x, y, z, direction=2, additive=True, power=1.0,
+                 wavelength=100e-9, freq=None, phase=0.0, func=sin):
         super().__init__(x, y, z, x, y, z, direction, additive,
-                         power, freq, phase, func)
+                         power, wavelength, freq, phase, func)
 
 
 class LineSource(Source):
@@ -87,17 +104,19 @@ class LineSource(Source):
     def set_amplitude(self):
         self.amplitude = (self.power
             * self.solver.inverse_permittivity[
-                (*self.pos, 2)])**0.5
+                self.pos + (direction,)])**0.5
         
     def update_E(self):
         if self.additive:
-            self.solver.E[(*self.pos, 2)] += self.amplitude * self.func(
+            self.solver.E[self.pos + (direction,)] += (
+                self.amplitude * self.func(
                 self.omega * self.current_time_step
-                * self.solver.time_step + self.phase)
+                * self.solver.time_step + self.phase))
         else:
-            self.solver.E[(*self.pos, 2)] = self.amplitude * self.func(
+            self.solver.E[self.pos + (direction,)] = (
+                self.amplitude * self.func(
                 self.omega * self.current_time_step
-                * self.solver.time_step + self.phase)
+                * self.solver.time_step + self.phase))
 
 
 def pulse(theta):
