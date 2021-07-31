@@ -111,23 +111,23 @@ class Solver:
     
     def update_E(self):
         for boundary in self.boundaries:
-            boundary.update_phi_E()
+            boundary.update_E_before()
         
         self.E *= self.dissipation_mult
         self.E += (self.dissipation_add * self.constant_E
                    * self.inverse_permittivity * curl_H(self.H))
         
         for boundary in self.boundaries:
-            boundary.update_E()
+            boundary.update_E_after()
         
     def update_H(self):
         for boundary in self.boundaries:
-            boundary.update_phi_H()
+            boundary.update_H_before()
         
         self.H -= self.constant_H * self.inverse_permeability * curl_E(self.E)
         
         for boundary in self.boundaries:
-            boundary.update_H()
+            boundary.update_H_after()
     
     def step(self):
         for source in self.sources:

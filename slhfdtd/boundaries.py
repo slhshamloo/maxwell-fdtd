@@ -26,16 +26,16 @@ class Boundary:
             for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
             slice(None))
     
-    def update_phi_E(self):
+    def update_E_before(self):
         pass
     
-    def update_phi_H(self):
+    def update_H_before(self):
         pass
     
-    def update_E(self):
+    def update_E_after(self):
         pass
     
-    def update_H(self):
+    def update_H_after(self):
         pass
 
 
@@ -111,7 +111,7 @@ class PML(Boundary):
         self.psi_Hy = np.zeros(self.shape)
         self.psi_Hz = np.zeros(self.shape)
     
-    def update_phi_E(self):
+    def update_E_before(self):
         b = self.b_E
         c = self.c_E
         
@@ -136,7 +136,7 @@ class PML(Boundary):
         self.phi_E[..., 1] = self.psi_Ey[..., 2] - self.psi_Ey[..., 0]
         self.phi_E[..., 2] = self.psi_Ez[..., 0] - self.psi_Ez[..., 1]
 
-    def update_phi_H(self):
+    def update_H_before(self):
         b = self.b_H
         c = self.c_H
         
@@ -161,11 +161,15 @@ class PML(Boundary):
         self.phi_H[..., 1] = self.psi_Hy[..., 2] - self.psi_Hy[..., 0]
         self.phi_H[..., 2] = self.psi_Hz[..., 0] - self.psi_Hz[..., 1]
     
-    def update_E(self):
-        self.solver.E[self.slices] += (self.solver.constant_E * self.phi_E)
+    def update_E_after(self):
+        self.solver.E[self.slices] += (self.solver.constant_E
+            * self.solver.inverse_permittivity[self.slices]
+            * self.phi_E)
 
-    def update_H(self):
-        self.solver.H[self.slices] -= (self.solver.constant_H * self.phi_H)
+    def update_H_after(self):
+        self.solver.H[self.slices] -= (self.solver.constant_H
+            * self.solver.inverse_permeability[self.slices]
+            * self.phi_H)
 
 
 class AutoPML(Boundary):
@@ -229,3 +233,36 @@ class AutoPML(Boundary):
             
             self.begin_bound[2] = self.thickness
             self.end_bound[2] = solver.length[2] - self.thickness
+
+
+class Exact1DAbsorber(Boundary):
+    def __init__(self, direction):
+        self.direction = direction
+        
+        self.begin, self.begin_match, self.end, self.end_match = (
+            4 * [slice(None)] for _ in range(4))
+        
+        self.begin[direction] = 0
+        self.begin_match[direction] = 1
+        self.end[direction] = -1
+        self.end_match[direction] = -2
+        
+        self.begin, self.begin_match, self.end, self.end_match = (
+            tuple(self.begin), tuple(self.begin_match),
+            tuple(self.end), tuple(self.end_match))
+        
+        self.step_E = False
+        self.step_H = False
+    
+    def set_solver(self, solver):
+        self.solver = solver
+    
+    def update_E_before(self):
+        if self.step_E:
+            self.solver.E[self.begin] = self.solver.E[self.begin_match]
+        self.step_E = not self.step_E
+    
+    def update_H_before(self):
+        if self.step_H:
+            self.solver.H[self.end] = self.solver.H[self.end_match]
+        self.step_H = not self.step_H
