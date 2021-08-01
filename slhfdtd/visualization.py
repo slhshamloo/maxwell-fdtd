@@ -8,6 +8,34 @@ from .boundaries import AutoPML
 from .objects import Slab
 
 
+def draw_object_1d(ax, *objects, axis_space=0, color='lime'):
+        for obj in objects:
+            ax.axvspan(obj.begin_pos[axis_space],
+                       obj.end_pos[axis_space],
+                       lw=0, alpha=0.5, color=color)
+
+
+def draw_object_2d(ax, *objects, color='lime'):
+    for obj in objects:
+        if isinstance(obj, Slab):
+            ax.add_patch(patches.Rectangle(
+                (obj.begin_pos[0], obj.begin_pos[1]),
+                obj.end_pos[0] - obj.begin_pos[0],
+                obj.end_pos[1] - obj.begin_pos[1],
+                lw=0, alpha=0.25, color=color
+            ))
+
+
+def extract_norm_if_str(norm):
+    if isinstance(norm, str):
+        if norm == 'lin':
+            return colors.Normalize()
+        elif norm == 'log':
+            return colors.SymLogNorm(1e-5)
+    else:
+        return norm
+
+
 class Visualizer():
     def __init__(self, solver):
         self.solver = solver
@@ -45,22 +73,6 @@ class Visualizer():
         self.plot2d_field(ax, self.solver.H, slice_z,
                           begin_x, begin_y, end_x, end_y,
                           crop_boundaries, norm, cmap, obj_color)
-    
-    def draw_object_1d(self, ax, *objects, axis_space=0, color='lime'):
-        for obj in objects:
-            ax.axvspan(obj.begin_pos[axis_space],
-                       obj.end_pos[axis_space],
-                       lw=0, alpha=0.5, color=color)
-    
-    def draw_object_2d(self, ax, *objects, color='lime'):
-        for obj in objects:
-            if isinstance(obj, Slab):
-                ax.add_patch(patches.Rectangle(
-                    (obj.begin_pos[0], obj.begin_pos[1]),
-                    obj.end_pos[0] - obj.begin_pos[0],
-                    obj.end_pos[1] - obj.begin_pos[1],
-                    lw=0, alpha=0.25, color=color
-                ))
     
     def plot1d_field(self, ax, field, axis_space=0, axis_field=2,
                      slice_first_coordinate=0, slice_second_coordinate=0,
@@ -104,9 +116,8 @@ class Visualizer():
         ax.plot(data_space, data_field, c=color)
 
         if obj_color is not None:
-            self.draw_object_1d(ax, *self.solver.objects,
-                                axis_space=axis_space,
-                                color=obj_color)
+            draw_object_1d(ax, *self.solver.objects,
+                           axis_space=axis_space, color=obj_color)
         
         ax.relim()
     
@@ -151,20 +162,14 @@ class Visualizer():
                                   slice_z_cell, :]**2,
                             axis=2)**0.5
 
-        if isinstance(norm, str):
-            if norm == 'lin':
-                norm = colors.Normalize()
-            elif norm == 'log':
-                norm = colors.SymLogNorm(1e-5)
-
+        norm = extract_norm_if_str(norm)
         pcm = ax.imshow(data_field.T, origin='lower', norm=norm,
                         extent=(begin_x, end_x, begin_y, end_y),
                         cmap=cmap)
         plt.colorbar(pcm, ax=ax)
 
         if obj_color is not None:
-            self.draw_object_2d(ax, *self.solver.objects,
-                                color=obj_color)
+            draw_object_2d(ax, *self.solver.objects,color=obj_color)
 
         ax.relim()
         ax.autoscale_view()
