@@ -7,7 +7,7 @@ from .solving import SPEED_LIGHT
 class Source:
     def __init__(self, begin_x, begin_y, begin_z, end_x, end_y, end_z,
                  direction=2, additive=True, step_before=True, power=1.0,
-                 wavelength=100e-9, freq=None, phase=0.0, func=sin):
+                 wavelength=300e-9, freq=None, phase=0.0, func=sin):
         self.begin_pos = begin_x, begin_y, begin_z
         self.end_pos = end_x, end_y, end_z
         self.direction, self.additive, self.step_before = \
@@ -91,7 +91,7 @@ class Source:
 class PointSource(Source):
     def __init__(self, x, y, z,
                  direction=2, additive=True, step_before=True, power=1.0,
-                 wavelength=100e-9, freq=None, phase=0.0, func=sin):
+                 wavelength=300e-9, freq=None, phase=0.0, func=sin):
         super().__init__(x, y, z, x, y, z,
                          direction, additive, step_before,
                          power, wavelength, freq, phase, func)
@@ -111,14 +111,12 @@ class LineSource(Source):
         )**0.5
         )
 
-        self.pos = list()
-        for (begin_c, end_c) in zip(self.begin_cell, self.end_cell):
-            if begin_c == end_c - 1:
-                self.pos.append(np.ones((length,)).astype(np.int)
-                                * int(begin_c))
-            else:
-                self.pos.append(
-                    np.linspace(begin_c, end_c, length).astype(np.int))
+        self.pos = tuple(
+            np.ones((length,)).astype(np.int) * int(begin_c)
+            if begin_c == end_c - 1
+            else np.linspace(begin_c, end_c, length).astype(np.int)
+            for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)
+        )
 
     def set_amplitude(self):
         self.amplitude = (
