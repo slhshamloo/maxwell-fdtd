@@ -8,12 +8,12 @@ class Source:
     def __init__(self, begin_x, begin_y, begin_z, end_x, end_y, end_z,
                  direction=2, additive=True, step_before=True, power=1.0,
                  wavelength=100e-9, freq=None, phase=0.0, func=sin):
-        self.begin_pos = (begin_x, begin_y, begin_z)
-        self.end_pos = (end_x, end_y, end_z)
-        self.direction, self.additive, self.step_before = (
-            direction, additive, step_before)
-        self.power, self.phase, self.func = (power, phase, func)
-        
+        self.begin_pos = begin_x, begin_y, begin_z
+        self.end_pos = end_x, end_y, end_z
+        self.direction, self.additive, self.step_before = \
+            direction, additive, step_before
+        self.power, self.phase, self.func = power, phase, func
+
         if wavelength is not None:
             self.wavelength = wavelength
             if wavelength == 0:
@@ -29,14 +29,14 @@ class Source:
         else:
             self.wavelength = 500e-9
             self.omega = 2*pi * SPEED_LIGHT/wavelength
-        
-        self.current_time_step=0
-    
+
+        self.current_time_step = 0
+
     def set_solver(self, solver):
         self.solver = solver
         self.set_pos(solver.grid_dist)
         self.set_amplitude()
-    
+
     def set_pos(self, grid_dist):
         self.begin_cell = list(round(begin / grid_dist)
                                for begin in self.begin_pos)
@@ -45,35 +45,48 @@ class Source:
         for i in range(3):
             if self.end_cell[i] == self.begin_cell[i]:
                 self.end_cell[i] += 1
-        
-        self.shape = (*(end_c - begin_c
-            for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
-            3)
-        self.slices = (*(slice(begin_c, end_c)
-            for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
-            int(self.direction))
-    
+
+        self.shape = (
+            *(end_c - begin_c
+              for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
+            3
+        )
+        self.slices = (
+            *(slice(begin_c, end_c)
+              for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
+            int(self.direction)
+        )
+
     def set_amplitude(self):
-        self.amplitude = (self.power * self.solver.inverse_permittivity[
-            self.slices])**0.5
-    
+        self.amplitude = (
+            self.power * self.solver.inverse_permittivity[self.slices]
+        )**0.5
+
     def step(self):
         self.update_E()
         self.update_H()
         self.current_time_step += 1
-    
+
     def update_E(self):
         if self.additive:
-            self.solver.E[self.slices] += self.amplitude * self.func(
-                self.omega * self.current_time_step
-                * self.solver.time_step + self.phase)
+            self.solver.E[self.slices] += (
+                self.amplitude * self.func(
+                    self.omega
+                    * self.current_time_step * self.solver.time_step
+                    + self.phase
+                )
+            )
         else:
-            self.solver.E[self.slices] = self.amplitude * self.func(
-                self.omega * self.current_time_step
-                * self.solver.time_step + self.phase)
-    
+            self.solver.E[self.slices] = (
+                self.amplitude * self.func(
+                    self.omega * self.current_time_step
+                    * self.solver.time_step + self.phase
+                )
+            )
+
     def update_H(self):
         pass
+
 
 class PointSource(Source):
     def __init__(self, x, y, z,
@@ -90,11 +103,14 @@ class LineSource(Source):
         self.set_pos(solver.grid_dist)
         self.set_span()
         self.set_amplitude()
-    
+
     def set_span(self):
-        length = int(sum((end_c - begin_c)**2
-            for (begin_c, end_c) in zip(self.begin_cell, self.end_cell))**0.5)
-        
+        length = int(sum(
+            (end_c - begin_c)**2 for (begin_c, end_c)
+            in zip(self.begin_cell, self.end_cell)
+        )**0.5
+        )
+
         self.pos = list()
         for (begin_c, end_c) in zip(self.begin_cell, self.end_cell):
             if begin_c == end_c - 1:
@@ -103,23 +119,30 @@ class LineSource(Source):
             else:
                 self.pos.append(
                     np.linspace(begin_c, end_c, length).astype(np.int))
-    
+
     def set_amplitude(self):
-        self.amplitude = (self.power
-            * self.solver.inverse_permittivity[
-                self.pos + (direction,)])**0.5
-        
+        self.amplitude = (
+            self.power * self.solver.inverse_permittivity[
+                self.pos + (self.direction,)]
+        )**0.5
+
     def update_E(self):
         if self.additive:
-            self.solver.E[self.pos + (direction,)] += (
+            self.solver.E[self.pos + (self.direction,)] += (
                 self.amplitude * self.func(
-                self.omega * self.current_time_step
-                * self.solver.time_step + self.phase))
+                    self.omega
+                    * self.current_time_step * self.solver.time_step
+                    + self.phase
+                )
+            )
         else:
-            self.solver.E[self.pos + (direction,)] = (
+            self.solver.E[self.pos + (self.direction,)] = (
                 self.amplitude * self.func(
-                self.omega * self.current_time_step
-                * self.solver.time_step + self.phase))
+                    self.omega
+                    * self.current_time_step * self.solver.time_step
+                    + self.phase
+                )
+            )
 
 
 def pulse(theta):

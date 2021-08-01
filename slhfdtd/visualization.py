@@ -10,7 +10,7 @@ from .boundaries import AutoPML
 class Visualizer():
     def __init__(self, solver):
         self.solver = solver
-    
+
     def plot1d_field(self, ax, field, axis_space=0, axis_field=2,
                      slice_first_coordinate=0, slice_second_coordinate=0,
                      begin_space=None, end_space=None, crop_boundaries=True,
@@ -19,7 +19,7 @@ class Visualizer():
             begin_space = 0
         if end_space is None:
             end_space = self.solver.length[axis_space]
-        
+
         if crop_boundaries:
             for boundary in self.solver.boundaries:
                 if isinstance(boundary, AutoPML):
@@ -27,36 +27,36 @@ class Visualizer():
                     end_crop = boundary.end_bound[axis_space]
                     if begin_space < begin_crop:
                         begin_space = begin_crop
-                    if end_space > end_crop:  
+                    if end_space > end_crop:
                         end_space = end_crop
                     break
-        
+
         begin_cell = round(begin_space / self.solver.grid_dist)
         end_cell = round(end_space / self.solver.grid_dist)
         slice_first_cell = round(slice_first_coordinate
                                  / self.solver.grid_dist)
         slice_second_cell = round(slice_first_coordinate
                                   / self.solver.grid_dist)
-        
+
         if axis_space == 0:
             data_field = field[begin_cell:end_cell, slice_first_cell,
-                slice_second_cell, axis_field]
+                               slice_second_cell, axis_field]
         if axis_space == 1:
             data_field = field[slice_first_cell, begin_cell:end_cell,
-                slice_second_cell, axis_field]
+                               slice_second_cell, axis_field]
         if axis_space == 2:
             data_field = field[slice_first_cell, slice_second_cell,
-                begin_cell:end_cell, axis_field]
-        
+                               begin_cell:end_cell, axis_field]
+
         data_space = np.linspace(begin_space, end_space,
                                  end_cell - begin_cell)
         ax.plot(data_space, data_field, c=color)
         ax.relim()
-        
+
         for obj in self.solver.objects:
             ax.axvspan(obj.begin_pos[axis_space], obj.end_pos[axis_space],
                        alpha=0.5, color=object_color)
-    
+
     def plot1d_E(self, ax, axis_space=0, axis_E=2,
                  slice_first_coordinate=0, slice_second_coordinate=0,
                  begin_space=None, end_space=None, crop_boundaries=True,
@@ -65,7 +65,7 @@ class Visualizer():
                           slice_first_coordinate, slice_second_coordinate,
                           begin_space, end_space, crop_boundaries,
                           color, object_color)
-    
+
     def plot1d_H(self, ax, axis_space=0, axis_H=1,
                  slice_first_coordinate=0, slice_second_coordinate=0,
                  begin_space=None, end_space=None, crop_boundaries=True,
@@ -74,7 +74,7 @@ class Visualizer():
                           slice_first_coordinate, slice_second_coordinate,
                           begin_space, end_space, crop_boundaries,
                           color, object_color)
-    
+
     def plot2d_field(self, ax, field, slice_z=0,
                      begin_x=None, begin_y=None, end_x=None, end_y=None,
                      crop_boundaries=True, cmap='jet', norm='lin'):
@@ -103,40 +103,40 @@ class Visualizer():
                     if end_y > end_crop_y:
                         end_y = end_crop_y
                     break
-        
+
         begin_x_cell = round(begin_x / self.solver.grid_dist)
         begin_y_cell = round(begin_y / self.solver.grid_dist)
         end_x_cell = round(end_x / self.solver.grid_dist)
         end_y_cell = round(end_y / self.solver.grid_dist)
         slice_z_cell = round(slice_z / self.solver.grid_dist)
-        
+
         data_field = np.sum(field[begin_x_cell:end_x_cell,
                                   begin_y_cell:end_y_cell,
                                   slice_z_cell, :]**2,
                             axis=2)**0.5
-        
+
         if isinstance(norm, str):
             if norm == 'lin':
                 norm = colors.Normalize()
             elif norm == 'log':
                 norm = colors.SymLogNorm(1e-5)
-        
+
         pcm = ax.imshow(data_field.T, origin='lower', norm=norm,
-                 extent=(begin_x, end_x, begin_y, end_y),
-                 cmap=cmap)
-        
+                        extent=(begin_x, end_x, begin_y, end_y),
+                        cmap=cmap)
+
         plt.colorbar(pcm, ax=ax)
         ax.relim()
         ax.autoscale_view()
         ax.set_aspect('auto')
-    
+
     def plot2d_E(self, ax, slice_z=0,
                  begin_x=None, begin_y=None, end_x=None, end_y=None,
                  crop_boundaries=True, cmap='Blues', norm='lin'):
         self.plot2d_field(ax, self.solver.E, slice_z,
                           begin_x, begin_y, end_x, end_y,
                           crop_boundaries, cmap, norm)
-    
+
     def plot2d_H(self, ax, slice_z=0,
                  begin_x=None, begin_y=None, end_x=None, end_y=None,
                  crop_boundaries=True, cmap='Reds', norm='lin'):
