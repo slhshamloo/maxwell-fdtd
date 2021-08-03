@@ -96,6 +96,9 @@ class Solver:
                        / VACUUM_PERMITTIVITY)
         self.dissipation_mult = (1 - dissipation) / (1 + dissipation)
         self.dissipation_add = 1 / (1 + dissipation)
+    
+    def get_poynting(self):
+        return np.cross(self.E, self.H)
 
     def add_source(self, source):
         source.set_solver(self)
