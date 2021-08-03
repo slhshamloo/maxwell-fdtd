@@ -19,13 +19,16 @@ class Boundary:
             if self.end_cell[i] == self.begin_cell[i]:
                 self.end_cell[i] += 1
 
-        self.shape = (*(end_c - begin_c for (begin_c, end_c)
-                        in zip(self.begin_cell, self.end_cell)), 3
-                      )
-        self.slices = (*(slice(begin_c, end_c)
-                         for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
-                       slice(None)
-                       )
+        self.shape = (
+            *(end_c - begin_c
+              for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
+            3
+        )
+        self.pos = (
+            *(slice(begin_c, end_c)
+              for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
+            slice(None)
+        )
 
     def update_E_before(self):
         pass
@@ -136,9 +139,9 @@ class PML(Boundary):
         self.psi_Ey *= b
         self.psi_Ez *= b
 
-        Hx = self.solver.H[self.slices[0], self.slices[1], self.slices[2], 0]
-        Hy = self.solver.H[self.slices[0], self.slices[1], self.slices[2], 1]
-        Hz = self.solver.H[self.slices[0], self.slices[1], self.slices[2], 2]
+        Hx = self.solver.H[self.pos[:-1] + (0,)]
+        Hy = self.solver.H[self.pos[:-1] + (1,)]
+        Hz = self.solver.H[self.pos[:-1] + (2,)]
 
         self.psi_Ex[:, 1:, :, 1] += \
             (Hz[:, 1:, :] - Hz[:, :-1, :]) * c[:, 1:, :, 1]
@@ -167,9 +170,9 @@ class PML(Boundary):
         self.psi_Hy *= b
         self.psi_Hz *= b
 
-        Ex = self.solver.E[self.slices[0], self.slices[1], self.slices[2], 0]
-        Ey = self.solver.E[self.slices[0], self.slices[1], self.slices[2], 1]
-        Ez = self.solver.E[self.slices[0], self.slices[1], self.slices[2], 2]
+        Ex = self.solver.E[self.pos[:-1] + (0,)]
+        Ey = self.solver.E[self.pos[:-1] + (1,)]
+        Ez = self.solver.E[self.pos[:-1] + (2,)]
 
         self.psi_Hx[:, :-1, :, 1] += \
             (Ez[:, 1:, :] - Ez[:, :-1, :]) * c[:, :-1, :, 1]
@@ -191,16 +194,16 @@ class PML(Boundary):
         self.phi_H[..., 2] = self.psi_Hz[..., 0] - self.psi_Hz[..., 1]
 
     def update_E_after(self):
-        self.solver.E[self.slices] += (
+        self.solver.E[self.pos] += (
             self.solver.constant_E
-            * self.solver.inverse_permittivity[self.slices]
+            * self.solver.inverse_permittivity[self.pos]
             * self.phi_E
         )
 
     def update_H_after(self):
-        self.solver.H[self.slices] -= (
+        self.solver.H[self.pos] -= (
             self.solver.constant_H
-            * self.solver.inverse_permeability[self.slices]
+            * self.solver.inverse_permeability[self.pos]
             * self.phi_H
         )
 

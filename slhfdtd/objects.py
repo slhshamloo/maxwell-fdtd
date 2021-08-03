@@ -15,13 +15,14 @@ class Slab(Object):
         self.end_pos = end_x, end_y, end_z
 
     def set_solver(self, solver):
-        self.set_pos(solver.grid_dist)
-        self.set_solver_parameters(solver)
+        self.solver = solver
+        self.set_pos()
+        self.set_solver_parameters()
 
-    def set_pos(self, grid_dist):
-        self.begin_cell = list(round(begin / grid_dist)
+    def set_pos(self):
+        self.begin_cell = list(round(begin / self.solver.grid_dist)
                                for begin in self.begin_pos)
-        self.end_cell = list(round(end / grid_dist)
+        self.end_cell = list(round(end / self.solver.grid_dist)
                              for end in self.end_pos)
         for i in range(3):
             if self.end_cell[i] == self.begin_cell[i]:
@@ -32,32 +33,32 @@ class Slab(Object):
               for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
             3
         )
-        self.slices = (
+        self.pos = (
             *(slice(begin_c, end_c)
               for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
             slice(None)
         )
 
-    def set_solver_parameters(self, solver):
-        self.set_solver_permittivity(solver)
-        self.set_solver_permeability(solver)
-        self.set_solver_conductivity(solver)
+    def set_solver_parameters(self):
+        self.set_solver_permittivity()
+        self.set_solver_permeability()
+        self.set_solver_conductivity()
 
-    def set_solver_permittivity(self, solver):
-        solver.inverse_permittivity[self.slices] = (
+    def set_solver_permittivity(self):
+        self.solver.inverse_permittivity[self.pos] = (
             np.ones(self.shape) / self.permittivity
         )
 
-    def set_solver_permeability(self, solver):
-        solver.inverse_permeability[self.slices] = (
+    def set_solver_permeability(self):
+        self.solver.inverse_permeability[self.pos] = (
             np.ones(self.shape) / self.permeability
         )
 
-    def set_solver_conductivity(self, solver):
+    def set_solver_conductivity(self):
         dissipation = (
             np.ones(self.shape)
             * 0.5 * self.conductivity / self.permittivity
         )
-        solver.dissipation_mult[self.slices] = \
+        self.solver.dissipation_mult[self.pos] = \
             (1 - dissipation) / (1 + dissipation)
-        solver.dissipation_add[self.slices] = 1 / (1 + dissipation)
+        self.solver.dissipation_add[self.pos] = 1 / (1 + dissipation)
