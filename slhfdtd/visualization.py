@@ -1,8 +1,10 @@
 import numpy as np
-import copy
 
 from matplotlib import pyplot as plt
-from matplotlib import colors, patches, gridspec
+from matplotlib import colors, patches, gridspec, cm
+
+from copy import copy
+from math import log10
 
 from .boundaries import AutoPML
 from .objects import Slab
@@ -27,19 +29,19 @@ class Visualizer():
         self.set_cells()
     
     def set_color(self, color_E='blue', color_H='red', color_S='purple',
-                  color_obj='lime', cmap_energy='Purples',
-                  cmap_E='Blues', cmap_H='Reds', cmap_S='jet'):
+                  color_obj='lime', cmap_energy='coolwarm',
+                  cmap_E='Blues', cmap_H='Reds', cmap_S='Purples'):
         self.color_E, self.color_H, self.color_S, self.color_obj = \
             color_E, color_H, color_S, color_obj
-        self.cmap_E, self.cmap_H, self.cmap_S, self.cmap_energy = \
-            cmap_E, cmap_H, cmap_S, cmap_energy
+        self.cmap_E, self.cmap_H, self.cmap_S, self.cmap_energy = tuple(
+            get_cmap_if_str(cmap) for cmap
+            in (cmap_E, cmap_H, cmap_S, cmap_energy)
+        )
     
     def set_cmap_norm(self, norm_E='lin', norm_H='lin', norm_S='lin',
                       norm_energy='lin'):
-        self.norm_E, self.norm_H, self.norm_S, self.norm_energy = (
-            get_norm_if_str(norm) for norm
-            in (norm_E, norm_H, norm_S, norm_energy)
-        )
+        self.norm_E, self.norm_H, self.norm_S, self.norm_energy = \
+            norm_E, norm_H, norm_S, norm_energy
     
     def set_orientation(self, orientation='v'):
         if orientation.lower() in ('v', 'vertical', 'vert', 'ver'):
@@ -48,22 +50,10 @@ class Visualizer():
             self.orientation = 'h'
         elif orientation.lower() in ('c', 'centered', 'center', 'cen'):
             self.orientation = 'c'
-    
-    def get_field_varables(self, field_name):
-        if field_name.upper() == 'E':
-            return self.solver.E, self.color_E, self.cmap_E, self.norm_E
-        elif field_name.upper() == 'H':
-            return self.solver.H, self.color_H, self.cmap_H, self.norm_H
-        elif field_name.upper() == 'S':
-            return (self.solver.get_poynting(), self.color_S,
-                    self.cmap_S, self.norm_S)
 
     def plot1d(self, axis_space=0,
                slice_first_coordinate=0, slice_second_coordinate=0):
-        if self.orientation == 'v':
-            fig, axs = plt.subplots(3, len(self.fields))
-        elif self.orientation == 'h':
-            fig, axs = plt.subplots(len(self.fields), 3)
+        fig, axs = self.get_fig_and_axs(3)
 
         for i in range(3):
             for j in range(len(self.fields)):
@@ -76,10 +66,7 @@ class Visualizer():
         return fig, axs
 
     def plot2d(self, axis_slice=2, slice_coordinate=0):
-        if self.orientation == 'v':
-            fig, axs = plt.subplots(3, len(self.fields))
-        elif self.orientation == 'h':
-            fig, axs = plt.subplots(len(self.fields), 3)
+        fig, axs = self.get_fig_and_axs(3)
 
         for i in range(3):
             for j in range(len(self.fields)):
@@ -91,39 +78,38 @@ class Visualizer():
         return fig, axs
 
     def plot2d_magnitude(self, axis_slice=2, slice_coordinate=0):
-        if self.orientation == 'v':
-            fig, axs = plt.subplots(3, len(self.fields))
-        elif self.orientation == 'h':
-            fig, axs = plt.subplots(len(self.fields), 3)
+        fig, axs = self.get_fig_and_axs(1)
 
-        for i in len(self.fields):
+        for i in range(len(self.fields)):
             self.plot2d_magnitude_field(axs[i], self.fields[i],
                                         axis_slice, slice_coordinate)
+
         plt.tight_layout()
         return fig, axs
 
-    def plot2d_vector(self, combine=True,
-                      axis_slice=2, slice_coordinate=0):
+    def plot2d_vector(self, axis_slice=2, slice_coordinate=0,
+                      combine=True, resolution=20,
+                      quiver=True, stream=False):
         if combine:
-            pass
-        else:
-            if self.orientation == 'v':
-                fig, axs = plt.subplots(3, len(self.fields))
-            elif self.orientation == 'h':
-                fig, axs = plt.subplots(len(self.fields), 3)
-            elif self.orientation == 'c':
-                if len(self.fields) == 3:
-                    fig = plt.figure()
-                    gs = gridspec.GridSpec(4, 4)
-                    axs = np.array((plt.subplot(gs[:2, :2]),
-                                    plt.subplot(gs[:2, 2:]),
-                                    plt.subplot(gs[2:4, 1:3])))
+            fig, axs = plt.subplots()
 
-            for i in len(self.fields):
+            for i in range(len(self.fields)):
+                self.plot2d_vector_field(axs, self.fields[i],
+                                         axis_slice, slice_coordinate,
+                                         resolution, quiver, stream)
+
+            axs.set_title(', '.join(r'$\mathbf{' + field + r'}$'
+                                    for field in self.fields))
+        else:
+            fig, axs = self.get_fig_and_axs(1)
+
+            for i in range(len(self.fields)):
                 self.plot2d_vector_field(axs[i], self.fields[i],
-                                            axis_slice, slice_coordinate)
-            plt.tight_layout()
-            return fig, axs
+                                         axis_slice, slice_coordinate,
+                                         resolution, quiver, stream)
+
+        plt.tight_layout()
+        return fig, axs
 
     def plot1d_field(self, ax, field_name, axis_space=0, axis_field=2,
                      slice_first_coordinate=0, slice_second_coordinate=0):
@@ -140,7 +126,6 @@ class Visualizer():
         
         ax.set_xlabel(get_axis_name(axis_space))
         ax.set_ylabel(get_field_label(field_name, axis_field))
-        ax.relim()
 
     def plot2d_field(self, ax, field_name, axis_field=2, axis_slice=2,
                      slice_coordinate=0):
@@ -148,6 +133,8 @@ class Visualizer():
         
         data_field = self.get_data_field_2d(
             field, axis_slice,slice_coordinate)[..., axis_field]
+        norm = get_norm_if_str(norm, data_field.min(), data_field.max())
+
         pcm = ax.imshow(data_field.T, extent=self.get_bounds_2d(axis_slice),
                         origin='lower', norm=norm, cmap=cmap)
         plt.colorbar(pcm, ax=ax)
@@ -157,9 +144,6 @@ class Visualizer():
         
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(get_field_label(field_name, axis_field))
-
-        ax.relim()
-        ax.autoscale_view()
         ax.set_aspect('auto')
 
     def plot2d_magnitude_field(self, ax, field_name, axis_slice=2,
@@ -170,38 +154,100 @@ class Visualizer():
             self.get_data_field_2d(field, axis_slice,slice_coordinate)**2,
             axis=2
         )**0.5
+        norm = get_norm_if_str(norm, data_field.min(), data_field.max())
+
         pcm = ax.imshow(data_field.T, extent=self.get_bounds_2d(axis_slice),
                         origin='lower', norm=norm, cmap=cmap)
-        plt.colorbar(pcm, ax=ax)
+        cb = plt.colorbar(pcm, ax=ax)
 
         if self.color_obj is not None:
             draw_object_2d(ax, *self.solver.objects, color=self.color_obj)
         
         set_axis_labels_2d(ax, axis_slice)
-        ax.set_title(r'$\|\|\mathbf{' + field_name + r'}\|\|$')
-
-        ax.relim()
-        ax.autoscale_view()
+        ax.set_title(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
         ax.set_aspect('auto')
     
     def plot2d_vector_field(self, ax, field_name, axis_slice=2,
-                            slice_coordinate=0):
+                            slice_coordinate=0, resolution=20,
+                            quiver=True, stream=False):
         field, color, cmap, norm = self.get_field_varables(field_name)
         
-        data_field, data_space = (
-            self.get_data_field_2d(field, axis_slice,slice_coordinate),
-            self.get_data_space_2d(axis_slice)
+        data_space, data_field = (self.get_data_space_2d(axis_slice),
+            self.get_data_field_2d(field, axis_slice, slice_coordinate)
         )
 
-        
+        data_field = np.delete(data_field, axis_slice, -1)
+        data_space, data_field = self.reduce_data(data_space, data_field,
+                                                  resolution=resolution)
+        field_magnitude = np.sum(data_field**2, axis=2)**0.5
+        data_field[..., 0] /= field_magnitude
+        data_field[..., 1] /= field_magnitude
+        norm = get_norm_if_str(norm, field_magnitude.min(),
+                               field_magnitude.max())
+
+        if quiver:
+            ax.quiver(*data_space, data_field[..., 0], data_field[..., 1],
+                      field_magnitude, cmap=cmap, norm=norm,
+                      scale=resolution, headwidth=5)
+        if stream and (data_field >= 1e-6).any():
+            ax.streamplot(*data_space,
+                            data_field[..., 0], data_field[..., 1],
+                            color=field_magnitude, cmap=cmap, norm=norm,
+                            density=resolution/30, zorder=1)
+
+        bounds = self.get_bounds_2d(axis_slice)
+        ax.set_xlim(bounds[0], bounds[1])
+        ax.set_ylim(bounds[2], bounds[3])
+
+        sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+        cb = plt.colorbar(sm, ax=ax)
+        cb.ax.set_title(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
 
         if self.color_obj is not None:
             draw_object_2d(ax, *self.solver.objects, color=self.color_obj)
-        
+
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(r'$\mathbf{' + field_name + r'}$')
+    
+    def get_field_varables(self, field_name):
+        if field_name.upper() == 'E':
+            return self.solver.E, self.color_E, self.cmap_E, self.norm_E
+        elif field_name.upper() == 'H':
+            return self.solver.H, self.color_H, self.cmap_H, self.norm_H
+        elif field_name.upper() == 'S':
+            return (self.solver.get_poynting(), self.color_S,
+                    self.cmap_S, self.norm_S)
+    
+    def get_fig_and_axs(self, dim):
+        field_num = len(self.fields)
 
-        ax.relim()
+        if self.orientation == 'v':
+            return plt.subplots(field_num, dim)
+        elif self.orientation == 'h':
+            return plt.subplots(dim, field_num)
+        elif self.orientation == 'c':
+            if dim == field_num:
+                return plt.subplots(dim, dim)
+            elif dim == 1 and field_num == 3:
+                fig = plt.figure()
+                gs = gridspec.GridSpec(4, 4)
+                axs = np.array((plt.subplot(gs[:2, :2]),
+                                plt.subplot(gs[:2, 2:]),
+                                plt.subplot(gs[2:, 1:3])))
+                return fig, axs
+            elif dim == 1 and field_num % 2 == 0:
+                fig, axs = plt.subplots(field_num / 2, field_num / 2)
+                return fig, axs.flatten()
+            elif dim == 3 and field_num == 2:
+                fig = plt.figure()
+                gs = gridspec.GridSpec(7, 11)
+                axs = np.array(
+                    (plt.subplot(gs[:3, 3:5]), plt.subplot(gs[4:, 3:5]),
+                     plt.subplot(gs[2:5, :2]), plt.subplot(gs[:3, 6:8]),
+                     plt.subplot(gs[4:, 6:8]), plt.subplot(gs[2:5, 9:]))
+                )
+                axs = np.reshape(axs, (2, 3))
+                return fig, axs
     
     def get_data_1d(self, field, axis_space, axis_field,
                     slice_first_coordinate, slice_second_coordinate):
@@ -212,10 +258,9 @@ class Visualizer():
             in (slice_first_coordinate, slice_second_coordinate)
         )
         
-        data_space = np.linspace(
-            self.begin_pos[axis_space], self.end_pos[axis_space],
-            self.end_cell[axis_space] - self.begin_cell[axis_space]
-        )
+        data_space = np.linspace(self.begin_pos[axis_space],
+                                 self.end_pos[axis_space],
+                                 self.cell_count[axis_space])
 
         slices = [slice_first_cell, slice_second_cell, axis_field]
         slices.insert(axis_space, slice(begin_cell, end_cell))
@@ -240,12 +285,10 @@ class Visualizer():
         return (
             np.linspace(self.begin_pos[axis_space[0]],
                         self.end_pos[axis_space[0]],
-                        self.end_cell[axis_space[0]],
-                        - self.begin_cell[axis_space[0]]),
+                        self.cell_count[axis_space[0]]),
             np.linspace(self.begin_pos[axis_space[1]],
                         self.end_pos[axis_space[1]],
-                        self.end_cell[axis_space[1]]
-                        - self.begin_cell[axis_space[1]])
+                        self.cell_count[axis_space[1]])
         )
     
     def get_bounds_2d(self, axis_slice):
@@ -253,6 +296,25 @@ class Visualizer():
         axis_space.remove(axis_slice)
         return (self.begin_pos[axis_space[0]], self.end_pos[axis_space[0]],
                 self.begin_pos[axis_space[1]], self.end_pos[axis_space[1]])
+    
+    def reduce_data(self, data_space, data_field, resolution=20):
+        dim = len(data_space)
+        index_min = min(range(dim), key=lambda i : len(data_space[i]))
+
+        index_reduced = tuple(
+            np.round(
+                np.linspace(0, len(data_space[i]) - 1,
+                            int(round(resolution * len(data_space[i])
+                                      / len(data_space[index_min]))))
+            ).astype(int)
+            for i in range(dim)
+        )
+
+        data_space = tuple(data_space[i][index_reduced[i]] for i in range(dim))
+        data_field = data_field[
+            np.meshgrid(*index_reduced, np.array(tuple(range(dim))))
+        ]
+        return data_space, data_field
     
     def set_bounds(self, begin, end):
         self.begin_pos, self.end_pos = list(begin), list(end)
@@ -266,6 +328,9 @@ class Visualizer():
                                 for begin_p in self.begin_pos)
         self.end_cell = tuple(int(round(end_p / self.solver.grid_dist))
                               for end_p in self.end_pos)
+        
+        self.cell_count = tuple(end_c - begin_c for (begin_c, end_c)
+                                in zip(self.begin_cell, self.end_cell))
     
     def set_axis_bounds(self, axis_space):
         if self.begin_pos[axis_space] is None:
@@ -298,18 +363,26 @@ def draw_object_2d(ax, *objects, color='lime'):
                 (obj.begin_pos[0], obj.begin_pos[1]),
                 obj.end_pos[0] - obj.begin_pos[0],
                 obj.end_pos[1] - obj.begin_pos[1],
-                lw=0, alpha=0.25, color=color
+                lw=0, alpha=0.17, color=color
             ))
 
 
-def get_norm_if_str(norm):
+def get_norm_if_str(norm, vmin, vmax):
     if isinstance(norm, str):
         if norm.lower() in ('lin', 'linear'):
-            return colors.Normalize()
+            return colors.Normalize(vmin=vmin, vmax=vmax)
         elif norm.lower() in ('log', 'logarithmic'):
-            return colors.SymLogNorm(1e-5)
+            linthresh = max(abs(vmin), 10 ** (round(log10(abs(vmax))) - 5))
+            return colors.SymLogNorm(linthresh, vmin=vmin, vmax=vmax)
     else:
         return norm
+
+
+def get_cmap_if_str(cmap):
+    if isinstance(cmap, str):
+        cmap = copy(cm.get_cmap(cmap))
+        cmap.set_bad(cmap(0))
+    return cmap
 
 
 def get_axis_name(axis_num):
