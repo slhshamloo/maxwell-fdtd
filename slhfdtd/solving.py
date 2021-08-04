@@ -38,13 +38,12 @@ def curl_H(H):
 
 
 class Solver:
-    def __init__(self, length_x, length_y, length_z,
-                 grid_dist=1e-10, courant_number=None,
+    def __init__(self, length, grid_dist=1e-9, courant_number=None,
                  permittivity=1.0, permeability=1.0, conductivity=0.0,
                  init_E=None, init_H=None):
         self.grid_dist = grid_dist
 
-        self.length = (length_x, length_y, length_z)
+        self.length = length
         self.cell_count = [round(length_x/grid_dist),
                            round(length_y/grid_dist),
                            round(length_z/grid_dist)]

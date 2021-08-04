@@ -8,11 +8,10 @@ class Object:
 
 
 class Slab(Object):
-    def __init__(self, begin_x, begin_y, begin_z, end_x, end_y, end_z,
-                 permittivity=1.0, permeability=1.0, conductivity=0.0):
+    def __init__(self, begin, end, permittivity=1.0, permeability=1.0,
+                 conductivity=0.0):
         super().__init__(permittivity, permeability, conductivity)
-        self.begin_pos = begin_x, begin_y, begin_z
-        self.end_pos = end_x, end_y, end_z
+        self.begin_pos, self.end_pos = begin, end
 
     def set_solver(self, solver):
         self.solver = solver
