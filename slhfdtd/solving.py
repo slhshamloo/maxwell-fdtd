@@ -42,11 +42,9 @@ class Solver:
                  permittivity=1.0, permeability=1.0, conductivity=0.0,
                  init_E=None, init_H=None):
         self.grid_dist = grid_dist
-
         self.length = length
-        self.cell_count = [round(length_x/grid_dist),
-                           round(length_y/grid_dist),
-                           round(length_z/grid_dist)]
+        self.cell_count = [round(length_axis/grid_dist)
+                           for length_axis in length]
         for i in range(len(self.cell_count)):
             if self.cell_count[i] == 0:
                 self.cell_count[i] = 1

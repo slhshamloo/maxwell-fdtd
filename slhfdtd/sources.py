@@ -83,11 +83,10 @@ class Source:
 
 
 class PointSource(Source):
-    def __init__(self, x, y, z,
-                 direction=2, additive=True, step_before=True, power=1.0,
-                 wavelength=300e-9, freq=None, phase=0.0, func=sin):
-        super().__init__((x, y, z), (x, y, z), direction, step_before,
-                         additive, func, power, wavelength, freq, phase)
+    def __init__(self, pos, direction=2, step_before=True, additive=True,
+                 func=sin, power=1.0, wavelength=300e-9, freq=None, phase=0.0):
+        super().__init__(pos, pos, direction, step_before, additive,
+                         func, power, wavelength, freq, phase)
 
 
 class LineSource(Source):
