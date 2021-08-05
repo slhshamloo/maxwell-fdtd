@@ -94,6 +94,13 @@ class Solver:
     
     def get_poynting(self):
         return np.cross(self.E, self.H)
+    
+    def get_energy(self):
+        return ((np.sum(self.E**2, axis=3)
+                 * VACUUM_PERMITTIVITY * self.permittivity
+                 + np.sum(self.H**2, axis=3)
+                 / VACUUM_PERMEABILITY / self.permeability)
+                / 2)
 
     def add_source(self, source):
         source.set_solver(self)
