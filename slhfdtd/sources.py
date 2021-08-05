@@ -53,7 +53,7 @@ class Source:
 
     def set_amplitude(self):
         self.amplitude = (
-            self.power * self.solver.inverse_permittivity[self.pos]
+            self.power / self.solver.permittivity[self.pos]
         )**0.5
 
     def step(self):

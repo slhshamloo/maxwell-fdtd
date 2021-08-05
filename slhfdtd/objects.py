@@ -44,14 +44,16 @@ class Slab(Object):
         self.set_solver_conductivity()
 
     def set_solver_permittivity(self):
-        self.solver.inverse_permittivity[self.pos] = (
-            np.ones(self.shape) / self.permittivity
-        )
+        if type(self.permittivity) is np.ndarray:
+            self.permittivity = self.permittivity[:, :, :, None]
+        self.solver.permittivity[self.pos] = \
+            np.ones(self.shape) * self.permittivity
 
     def set_solver_permeability(self):
-        self.solver.inverse_permeability[self.pos] = (
-            np.ones(self.shape) / self.permeability
-        )
+        if type(self.permeability) is np.ndarray:
+            self.permeability = self.permeability[:, :, :, None]
+        self.solver.permeability[self.pos] = \
+            np.ones(self.shape) * self.permeability
 
     def set_solver_conductivity(self):
         dissipation = (

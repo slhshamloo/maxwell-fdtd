@@ -76,20 +76,18 @@ class Solver:
     def set_permittivity(self, permittivity):
         if type(permittivity) is np.ndarray:
             permittivity = permittivity[:, :, :, None]
-        self.inverse_permittivity = \
-            np.ones((*self.cell_count, 3)) / permittivity
+        self.permittivity = np.ones((*self.cell_count, 3)) * permittivity
 
     def set_permeability(self, permeability):
         if type(permeability) is np.ndarray:
             permeability = permeability[:, :, :, None]
-        self.inverse_permeability = \
-            np.ones((*self.cell_count, 3)) / permeability
+        self.permeability = np.ones((*self.cell_count, 3)) * permeability
 
     def set_conductivity(self, conductivity):
         if type(conductivity) is np.ndarray:
             conductivity = conductivity[:, :, :, None]
         dissipation = (np.ones((*self.cell_count, 3))
-                       * 0.5 * conductivity * self.inverse_permittivity
+                       * 0.5 * conductivity / self.permittivity
                        / VACUUM_PERMITTIVITY)
         self.dissipation_mult = (1 - dissipation) / (1 + dissipation)
         self.dissipation_add = 1 / (1 + dissipation)
@@ -115,7 +113,7 @@ class Solver:
 
         self.E *= self.dissipation_mult
         self.E += (self.dissipation_add * self.constant_E
-                   * self.inverse_permittivity * curl_H(self.H))
+                   / self.permittivity * curl_H(self.H))
 
         for boundary in self.boundaries:
             boundary.update_E_after()
@@ -124,7 +122,7 @@ class Solver:
         for boundary in self.boundaries:
             boundary.update_H_before()
 
-        self.H -= self.constant_H * self.inverse_permeability * curl_E(self.E)
+        self.H -= self.constant_H / self.permeability * curl_E(self.E)
 
         for boundary in self.boundaries:
             boundary.update_H_after()

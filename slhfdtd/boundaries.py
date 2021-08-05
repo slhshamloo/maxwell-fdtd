@@ -196,14 +196,14 @@ class PML(Boundary):
     def update_E_after(self):
         self.solver.E[self.pos] += (
             self.solver.constant_E
-            * self.solver.inverse_permittivity[self.pos]
+            / self.solver.permittivity[self.pos]
             * self.phi_E
         )
 
     def update_H_after(self):
         self.solver.H[self.pos] -= (
             self.solver.constant_H
-            * self.solver.inverse_permeability[self.pos]
+            / self.solver.permeability[self.pos]
             * self.phi_H
         )
 
