@@ -110,6 +110,20 @@ class Visualizer():
 
         plt.tight_layout()
         return fig, axs
+    
+    def plot2d_vect_on_mag(self, axis_slice=2, slice_coordinate=0,
+                           resolution=20, arrow_color='black',
+                           quiver=True, stream=False):
+        fig, axs = self.get_fig_and_axs(1)
+
+        for i in range(len(self.fields)):
+            self.plot2d_vect_on_mag_field(axs[i], self.fields[i],
+                axis_slice, slice_coordinate, resolution, arrow_color,
+                quiver, stream
+            )
+
+        plt.tight_layout()
+        return fig, axs
 
     def plot1d_field(self, ax, field_name, axis_space=0, axis_field=2,
                      slice_first_coordinate=0, slice_second_coordinate=0):
@@ -158,7 +172,7 @@ class Visualizer():
 
         pcm = ax.imshow(data_field.T, extent=self.get_bounds_2d(axis_slice),
                         origin='lower', norm=norm, cmap=cmap)
-        cb = plt.colorbar(pcm, ax=ax)
+        plt.colorbar(pcm, ax=ax)
 
         if self.color_obj is not None:
             draw_object_2d(ax, *self.solver.objects, color=self.color_obj)
@@ -185,15 +199,14 @@ class Visualizer():
         norm = get_norm_if_str(norm, field_magnitude.min(),
                                field_magnitude.max())
 
+        if stream and (data_field >= 1e-6).any():
+            ax.streamplot(*data_space, data_field[..., 0], data_field[..., 1],
+                          color=field_magnitude, cmap=cmap, norm=norm,
+                          density=resolution/30)
         if quiver:
             ax.quiver(*data_space, data_field[..., 0], data_field[..., 1],
                       field_magnitude, cmap=cmap, norm=norm,
                       scale=resolution, headwidth=5)
-        if stream and (data_field >= 1e-6).any():
-            ax.streamplot(*data_space,
-                            data_field[..., 0], data_field[..., 1],
-                            color=field_magnitude, cmap=cmap, norm=norm,
-                            density=resolution/30, zorder=1)
 
         bounds = self.get_bounds_2d(axis_slice)
         ax.set_xlim(bounds[0], bounds[1])
@@ -201,13 +214,52 @@ class Visualizer():
 
         sm = cm.ScalarMappable(cmap=cmap, norm=norm)
         cb = plt.colorbar(sm, ax=ax)
-        cb.ax.set_title(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
+        cb.ax.set_xlabel(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
 
         if self.color_obj is not None:
             draw_object_2d(ax, *self.solver.objects, color=self.color_obj)
 
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(r'$\mathbf{' + field_name + r'}$')
+    
+    def plot2d_vect_on_mag_field(self, ax, field_name,
+                                 axis_slice, slice_coordinate=0,
+                                 resolution=20, arrow_color='black',
+                                 quiver=True, stream=False):
+        field, color, cmap, norm = self.get_field_varables(field_name)
+        
+        data_space, data_field = (self.get_data_space_2d(axis_slice),
+            self.get_data_field_2d(field, axis_slice, slice_coordinate)
+        )
+
+        field_magnitude = np.sum(data_field**2, axis=2)**0.5
+        norm = get_norm_if_str(norm, field_magnitude.min(),
+                               field_magnitude.max())
+        pcm = ax.imshow(field_magnitude, extent=self.get_bounds_2d(axis_slice),
+                        origin='lower', norm=norm, cmap=cmap)
+        cb = plt.colorbar(pcm, ax=ax)
+        cb.ax.set_xlabel(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
+
+        data_field = np.delete(data_field, axis_slice, -1)
+        data_space, data_field = self.reduce_data(data_space, data_field,
+                                                  resolution=resolution)
+        field_magnitude = np.sum(data_field**2, axis=2)**0.5
+        data_field[..., 0] /= field_magnitude
+        data_field[..., 1] /= field_magnitude
+
+        if stream and (data_field >= 1e-6).any():
+            ax.streamplot(*data_space, data_field[..., 0], data_field[..., 1],
+                          color=arrow_color, density=resolution/30)
+        if quiver:
+            ax.quiver(*data_space, data_field[..., 0], data_field[..., 1],
+                      color=arrow_color, scale=resolution, headwidth=5)
+
+        if self.color_obj is not None:
+            draw_object_2d(ax, *self.solver.objects, color=self.color_obj)
+
+        set_axis_labels_2d(ax, axis_slice)
+        ax.set_title(r'$\mathbf{' + field_name + r'}$')
+        ax.set_aspect('auto')
     
     def get_field_varables(self, field_name):
         if field_name.upper() == 'E':
@@ -397,5 +449,5 @@ def get_field_label(field_name, axis_field):
 def set_axis_labels_2d(ax, axis_slice):
     axis_space = list(range(3))
     axis_space.pop(axis_slice)
-    ax.set_xlabel(get_axis_name(axis_space[0]))
-    ax.set_ylabel(get_axis_name(axis_space[1]))
+    ax.set_xlabel('$' + get_axis_name(axis_space[0]) + '$')
+    ax.set_ylabel('$' + get_axis_name(axis_space[1]) + '$')
