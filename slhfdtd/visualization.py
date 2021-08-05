@@ -26,7 +26,7 @@ class Visualizer():
         self.set_bounds(begin, end)
         self.set_cells()
     
-    def set_fields(self, fields = ('E', 'H', 'S')):
+    def set_fields(self, fields = ('E', 'H', 'S', 'U')):
         self.fields = fields
     
     def set_colors(self, field_colors=('blue', 'red', 'purple', 'green'),
@@ -48,12 +48,15 @@ class Visualizer():
 
     def plot1d(self, axis_space=0,
                slice_first_coordinate=0, slice_second_coordinate=0):
-        fig, axs = self.get_fig_and_axs(3)
+        fields = list(self.fields)
+        if 'U' in (field.upper() for field in fields):
+            fields.remove('U')
+        fig, axs = self.get_fig_and_axs(3, len(fields))
 
         for i in range(3):
-            for j in range(len(self.fields)):
+            for j in range(len(fields)):
                 ax = axs[i, j] if self.orientation == 'v' else axs[j, i]
-                self.plot1d_field(ax, self.fields[j], axis_space, i,
+                self.plot1d_field(ax, fields[j], axis_space, i,
                                   slice_first_coordinate,
                                   slice_second_coordinate)
 
@@ -61,23 +64,29 @@ class Visualizer():
         return fig, axs
 
     def plot2d(self, axis_slice=2, slice_coordinate=0):
-        fig, axs = self.get_fig_and_axs(3)
+        fields = list(self.fields)
+        if 'U' in (field.upper() for field in fields):
+            fields.remove('U')
+        fig, axs = self.get_fig_and_axs(3, len(fields))
 
         for i in range(3):
-            for j in range(len(self.fields)):
+            for j in range(len(fields)):
                 ax = axs[i, j] if self.orientation == 'v' else axs[j, i]
-                self.plot2d_field(ax, self.fields[j], i, axis_slice,
+                self.plot2d_field(ax, fields[j], i, axis_slice,
                                   slice_coordinate)
 
         plt.tight_layout()
         return fig, axs
 
     def plot2d_magnitude(self, axis_slice=2, slice_coordinate=0):
-        fig, axs = self.get_fig_and_axs(1)
+        fig, axs = self.get_fig_and_axs(1, len(self.fields))
 
         for i in range(len(self.fields)):
-            self.plot2d_magnitude_field(axs[i], self.fields[i],
-                                        axis_slice, slice_coordinate)
+            if self.fields[i].upper() == 'U':
+                self.plot2d_energy(axs[i], axis_slice, slice_coordinate)
+            else:
+                self.plot2d_magnitude_field(axs[i], self.fields[i],
+                                            axis_slice, slice_coordinate)
 
         plt.tight_layout()
         return fig, axs
@@ -85,21 +94,25 @@ class Visualizer():
     def plot2d_vector(self, axis_slice=2, slice_coordinate=0,
                       combine=True, resolution=25,
                       quiver=True, stream=False):
+        fields = list(self.fields)
+        if 'U' in (field.upper() for field in fields):
+            fields.remove('U')
+
         if combine:
             fig, axs = plt.subplots()
 
-            for i in range(len(self.fields)):
-                self.plot2d_vector_field(axs, self.fields[i],
+            for i in range(len(fields)):
+                self.plot2d_vector_field(axs, fields[i],
                                          axis_slice, slice_coordinate,
                                          resolution, quiver, stream)
 
             axs.set_title(', '.join(r'$\mathbf{' + field + r'}$'
-                                    for field in self.fields))
+                                    for field in fields))
         else:
-            fig, axs = self.get_fig_and_axs(1)
+            fig, axs = self.get_fig_and_axs(1, len(fields))
 
-            for i in range(len(self.fields)):
-                self.plot2d_vector_field(axs[i], self.fields[i],
+            for i in range(len(fields)):
+                self.plot2d_vector_field(axs[i], fields[i],
                                          axis_slice, slice_coordinate,
                                          resolution, quiver, stream)
 
@@ -109,10 +122,13 @@ class Visualizer():
     def plot2d_vect_on_mag(self, axis_slice=2, slice_coordinate=0,
                            resolution=25, arrow_color='black',
                            quiver=True, stream=False):
-        fig, axs = self.get_fig_and_axs(1)
+        fields = list(self.fields)
+        if 'U' in (field.upper() for field in fields):
+            fields.remove('U')
+        fig, axs = self.get_fig_and_axs(1, len(fields))
 
-        for i in range(len(self.fields)):
-            self.plot2d_vect_on_mag_field(axs[i], self.fields[i],
+        for i in range(len(fields)):
+            self.plot2d_vect_on_mag_field(axs[i], fields[i],
                 axis_slice, slice_coordinate, resolution, arrow_color,
                 quiver, stream
             )
@@ -179,6 +195,23 @@ class Visualizer():
         ax.set_title(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
         ax.set_aspect('auto')
     
+    def plot2d_energy(self, ax, axis_slice=2, slice_coordinate=0):
+        field, color, color_obj, cmap, norm = self.get_field_varables('U')
+
+        data_field = self.get_data_field_2d(field, axis_slice,
+                                            slice_coordinate)
+        norm = get_norm_if_str(norm, field.min(), field.max())
+        pcm = ax.imshow(data_field.T, extent=self.get_bounds_2d(axis_slice),
+                        origin='lower', norm=norm, cmap=cmap)
+        plt.colorbar(pcm, ax=ax)
+
+        if color_obj is not None:
+            draw_object_2d(ax, *self.solver.objects, color=color_obj)
+        
+        set_axis_labels_2d(ax, axis_slice)
+        ax.set_title('$U$')
+        ax.set_aspect('auto')
+    
     def plot2d_vector_field(self, ax, field_name, axis_slice=2,
                             slice_coordinate=0, resolution=25,
                             quiver=True, stream=False):
@@ -222,7 +255,7 @@ class Visualizer():
         ax.set_title(r'$\mathbf{' + field_name + r'}$')
     
     def plot2d_vect_on_mag_field(self, ax, field_name,
-                                 axis_slice, slice_coordinate=0,
+                                 axis_slice=2, slice_coordinate=0,
                                  resolution=25, arrow_color='black',
                                  quiver=True, stream=False):
         field, color, color_obj, cmap, norm = \
@@ -259,7 +292,58 @@ class Visualizer():
 
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(r'$\mathbf{' + field_name + r'}$')
-        ax.set_aspect('auto')
+        ax.set_aspect('auto') 
+
+    def plot2d_poynting_on_energy(self, ax, axis_slice=2, slice_coordinate=0,
+                                  resolution=25, poynting_cmap='Greys',
+                                  quiver=True, stream=False):
+        energy, color, color_obj, energy_cmap, energy_norm = \
+            self.get_field_varables('U')
+        poynting, _, _, _, poynting_norm = self.get_field_varables('S')
+        poynting_cmap = get_cmap_if_str(poynting_cmap)
+        
+        data_space, data_energy, data_poynting = (
+            self.get_data_space_2d(axis_slice),
+            self.get_data_field_2d(energy, axis_slice, slice_coordinate),
+            self.get_data_field_2d(poynting, axis_slice, slice_coordinate)
+        )
+        energy_norm = get_norm_if_str(energy_norm, data_energy.min(),
+                                      data_energy.max())
+        pcm = ax.imshow(data_energy, extent=self.get_bounds_2d(axis_slice),
+                        origin='lower', norm=energy_norm, cmap=energy_cmap)
+        cb = plt.colorbar(pcm, ax=ax)
+        cb.ax.set_xlabel('$U$')
+
+        data_poynting = np.delete(data_poynting, axis_slice, -1)
+        data_space, data_poynting = self.reduce_data(data_space, data_poynting,
+                                                     resolution=resolution)
+        poynting_magnitude = np.sum(data_poynting**2, axis=2)**0.5
+        poynting_norm = get_norm_if_str(poynting_norm, data_poynting.min(),
+                                        data_poynting.max())
+
+        if stream and (data_poynting >= 1e-9).any():
+            ax.streamplot(*data_space,
+                          data_poynting[..., 0], data_poynting[..., 1],
+                          color=poynting_magnitude, cmap=poynting_cmap,
+                          norm=poynting_norm, density=resolution/30)
+        if quiver:
+            data_poynting[..., 0] /= poynting_magnitude
+            data_poynting[..., 1] /= poynting_magnitude
+            ax.quiver(*data_space,
+                      data_poynting[..., 0], data_poynting[..., 1],
+                      poynting_magnitude, cmap=poynting_cmap,
+                      norm=poynting_norm, scale=resolution, headwidth=5)
+        
+        sm = cm.ScalarMappable(cmap=poynting_cmap, norm=poynting_norm)
+        cb = plt.colorbar(sm, ax=ax)
+        cb.ax.set_xlabel(r'$\|\|\,\mathbf{S}\,\|\|$')
+
+        if color_obj is not None:
+            draw_object_2d(ax, *self.solver.objects, color=color_obj)
+
+        set_axis_labels_2d(ax, axis_slice)
+        ax.set_title('Energy Flow')
+        ax.set_aspect('auto')     
     
     def get_field_varables(self, field_name):
         variables = [self.get_field_from_str(field_name)]
@@ -287,12 +371,10 @@ class Visualizer():
             return self.solver.H
         if field_name.upper() == 'S':
             return self.solver.get_poynting()
-        if field_name.lower() == 'energy':
+        if field_name.upper() == 'U':
             return self.solver.get_energy()
     
-    def get_fig_and_axs(self, dim):
-        field_num = len(self.fields)
-
+    def get_fig_and_axs(self, dim, field_num):
         if self.orientation == 'v':
             return plt.subplots(field_num, dim)
         elif self.orientation == 'h':
@@ -308,7 +390,7 @@ class Visualizer():
                                 plt.subplot(gs[2:, 1:3])))
                 return fig, axs
             elif dim == 1 and field_num % 2 == 0:
-                fig, axs = plt.subplots(field_num / 2, field_num / 2)
+                fig, axs = plt.subplots(int(field_num / 2), int(field_num / 2))
                 return fig, axs.flatten()
             elif dim == 3 and field_num == 2:
                 fig = plt.figure()
@@ -349,6 +431,8 @@ class Visualizer():
         slices.insert(axis_slice,
             int(round(slice_coordinate / self.solver.grid_dist))
         )
+        if len(field.shape) == 3:
+            slices.pop()
         return field[tuple(slices)]
     
     def get_data_space_2d(self, axis_slice):
@@ -446,6 +530,8 @@ def get_norm_if_str(norm, vmin, vmax):
         elif norm.lower() in ('log', 'logarithmic'):
             if vmax < 1e-9:
                 linthresh = 1
+            elif vmin == 0:
+                linthresh = 10 ** (round(log10(abs(vmax))) - 5)
             else:
                 linthresh = max(10 ** (round(log10(abs(vmin)))),
                                 10 ** (round(log10(abs(vmax))) - 5))
