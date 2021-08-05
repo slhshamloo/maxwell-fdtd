@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import colors, patches, gridspec, cm
 
+from typing import Container
 from copy import copy
 from math import log10
 
@@ -13,14 +14,11 @@ from .objects import Slab
 class Visualizer():
     def __init__(self, solver):
         self.solver = solver
-        self.set_fields()
         self.set_pos()
-        self.set_color()
-        self.set_cmap_norm()
+        self.set_fields()
+        self.set_colors()
+        self.set_cmap_norms()
         self.set_orientation()
-    
-    def set_fields(self, fields = ('E', 'H', 'S')):
-        self.fields = fields
     
     def set_pos(self, begin=(None, None, None), end=(None, None, None),
                 crop_boundaries=True):
@@ -28,20 +26,17 @@ class Visualizer():
         self.set_bounds(begin, end)
         self.set_cells()
     
-    def set_color(self, color_E='blue', color_H='red', color_S='purple',
-                  color_obj='lime', cmap_energy='coolwarm',
-                  cmap_E='Blues', cmap_H='Reds', cmap_S='Purples'):
-        self.color_E, self.color_H, self.color_S, self.color_obj = \
-            color_E, color_H, color_S, color_obj
-        self.cmap_E, self.cmap_H, self.cmap_S, self.cmap_energy = tuple(
-            get_cmap_if_str(cmap) for cmap
-            in (cmap_E, cmap_H, cmap_S, cmap_energy)
-        )
+    def set_fields(self, fields = ('E', 'H', 'S')):
+        self.fields = fields
     
-    def set_cmap_norm(self, norm_E='lin', norm_H='lin', norm_S='lin',
-                      norm_energy='lin'):
-        self.norm_E, self.norm_H, self.norm_S, self.norm_energy = \
-            norm_E, norm_H, norm_S, norm_energy
+    def set_colors(self, field_colors=('blue', 'red', 'purple', 'green'),
+                   cmaps=('Blues', 'Reds', 'Purples', 'coolwarm'),
+                   object_colors='lime'):
+        self.field_colors, self.cmaps, self.object_colors \
+            = field_colors, cmaps, object_colors
+
+    def set_cmap_norms(self, norms='lin'):
+        self.norms = norms
     
     def set_orientation(self, orientation='v'):
         if orientation.lower() in ('v', 'vertical', 'vert', 'ver'):
@@ -88,7 +83,7 @@ class Visualizer():
         return fig, axs
 
     def plot2d_vector(self, axis_slice=2, slice_coordinate=0,
-                      combine=True, resolution=20,
+                      combine=True, resolution=25,
                       quiver=True, stream=False):
         if combine:
             fig, axs = plt.subplots()
@@ -112,7 +107,7 @@ class Visualizer():
         return fig, axs
     
     def plot2d_vect_on_mag(self, axis_slice=2, slice_coordinate=0,
-                           resolution=20, arrow_color='black',
+                           resolution=25, arrow_color='black',
                            quiver=True, stream=False):
         fig, axs = self.get_fig_and_axs(1)
 
@@ -127,23 +122,25 @@ class Visualizer():
 
     def plot1d_field(self, ax, field_name, axis_space=0, axis_field=2,
                      slice_first_coordinate=0, slice_second_coordinate=0):
-        field, color, cmap, norm = self.get_field_varables(field_name)
+        field, color, color_obj, cmap, norm = \
+            self.get_field_varables(field_name)
 
         ax.plot(*self.get_data_1d(field, axis_space, axis_field,
                                   slice_first_coordinate,
                                   slice_second_coordinate),
                 c=color)
 
-        if self.color_obj is not None:
+        if color_obj is not None:
             draw_object_1d(ax, *self.solver.objects,
-                           axis_space=axis_space, color=self.color_obj)
+                           axis_space=axis_space, color=color_obj)
         
         ax.set_xlabel(get_axis_name(axis_space))
         ax.set_ylabel(get_field_label(field_name, axis_field))
 
     def plot2d_field(self, ax, field_name, axis_field=2, axis_slice=2,
                      slice_coordinate=0):
-        field, color, cmap, norm = self.get_field_varables(field_name)
+        field, color, color_obj, cmap, norm = \
+            self.get_field_varables(field_name)
         
         data_field = self.get_data_field_2d(
             field, axis_slice,slice_coordinate)[..., axis_field]
@@ -153,8 +150,8 @@ class Visualizer():
                         origin='lower', norm=norm, cmap=cmap)
         plt.colorbar(pcm, ax=ax)
 
-        if self.color_obj is not None:
-            draw_object_2d(ax, *self.solver.objects, color=self.color_obj)
+        if color_obj is not None:
+            draw_object_2d(ax, *self.solver.objects, color=color_obj)
         
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(get_field_label(field_name, axis_field))
@@ -162,7 +159,8 @@ class Visualizer():
 
     def plot2d_magnitude_field(self, ax, field_name, axis_slice=2,
                                slice_coordinate=0):
-        field, color, cmap, norm = self.get_field_varables(field_name)
+        field, color, color_obj, cmap, norm = \
+            self.get_field_varables(field_name)
         
         data_field = np.sum(
             self.get_data_field_2d(field, axis_slice,slice_coordinate)**2,
@@ -174,17 +172,18 @@ class Visualizer():
                         origin='lower', norm=norm, cmap=cmap)
         plt.colorbar(pcm, ax=ax)
 
-        if self.color_obj is not None:
-            draw_object_2d(ax, *self.solver.objects, color=self.color_obj)
+        if color_obj is not None:
+            draw_object_2d(ax, *self.solver.objects, color=color_obj)
         
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
         ax.set_aspect('auto')
     
     def plot2d_vector_field(self, ax, field_name, axis_slice=2,
-                            slice_coordinate=0, resolution=20,
+                            slice_coordinate=0, resolution=25,
                             quiver=True, stream=False):
-        field, color, cmap, norm = self.get_field_varables(field_name)
+        field, color, color_obj, cmap, norm = \
+            self.get_field_varables(field_name)
         
         data_space, data_field = (self.get_data_space_2d(axis_slice),
             self.get_data_field_2d(field, axis_slice, slice_coordinate)
@@ -194,16 +193,16 @@ class Visualizer():
         data_space, data_field = self.reduce_data(data_space, data_field,
                                                   resolution=resolution)
         field_magnitude = np.sum(data_field**2, axis=2)**0.5
-        data_field[..., 0] /= field_magnitude
-        data_field[..., 1] /= field_magnitude
         norm = get_norm_if_str(norm, field_magnitude.min(),
                                field_magnitude.max())
 
-        if stream and (data_field >= 1e-6).any():
+        if stream and (data_field >= 1e-9).any():
             ax.streamplot(*data_space, data_field[..., 0], data_field[..., 1],
                           color=field_magnitude, cmap=cmap, norm=norm,
                           density=resolution/30)
         if quiver:
+            data_field[..., 0] /= field_magnitude
+            data_field[..., 1] /= field_magnitude
             ax.quiver(*data_space, data_field[..., 0], data_field[..., 1],
                       field_magnitude, cmap=cmap, norm=norm,
                       scale=resolution, headwidth=5)
@@ -216,17 +215,18 @@ class Visualizer():
         cb = plt.colorbar(sm, ax=ax)
         cb.ax.set_xlabel(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
 
-        if self.color_obj is not None:
-            draw_object_2d(ax, *self.solver.objects, color=self.color_obj)
+        if color_obj is not None:
+            draw_object_2d(ax, *self.solver.objects, color=color_obj)
 
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(r'$\mathbf{' + field_name + r'}$')
     
     def plot2d_vect_on_mag_field(self, ax, field_name,
                                  axis_slice, slice_coordinate=0,
-                                 resolution=20, arrow_color='black',
+                                 resolution=25, arrow_color='black',
                                  quiver=True, stream=False):
-        field, color, cmap, norm = self.get_field_varables(field_name)
+        field, color, color_obj, cmap, norm = \
+            self.get_field_varables(field_name)
         
         data_space, data_field = (self.get_data_space_2d(axis_slice),
             self.get_data_field_2d(field, axis_slice, slice_coordinate)
@@ -244,31 +244,51 @@ class Visualizer():
         data_space, data_field = self.reduce_data(data_space, data_field,
                                                   resolution=resolution)
         field_magnitude = np.sum(data_field**2, axis=2)**0.5
-        data_field[..., 0] /= field_magnitude
-        data_field[..., 1] /= field_magnitude
 
-        if stream and (data_field >= 1e-6).any():
+        if stream and (data_field >= 1e-9).any():
             ax.streamplot(*data_space, data_field[..., 0], data_field[..., 1],
                           color=arrow_color, density=resolution/30)
         if quiver:
+            data_field[..., 0] /= field_magnitude
+            data_field[..., 1] /= field_magnitude
             ax.quiver(*data_space, data_field[..., 0], data_field[..., 1],
                       color=arrow_color, scale=resolution, headwidth=5)
 
-        if self.color_obj is not None:
-            draw_object_2d(ax, *self.solver.objects, color=self.color_obj)
+        if color_obj is not None:
+            draw_object_2d(ax, *self.solver.objects, color=color_obj)
 
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(r'$\mathbf{' + field_name + r'}$')
         ax.set_aspect('auto')
     
     def get_field_varables(self, field_name):
+        variables = [self.get_field_from_str(field_name)]
+        index = self.fields.index(field_name)
+
+        for variable in (self.field_colors, self.object_colors,
+                         self.cmaps, self.norms):
+            if isinstance(variable, Container) \
+                    and not isinstance(variable, str):
+                new_variable = variable[index]
+            else:
+                new_variable = variable
+
+            if variable == self.cmaps:
+                new_variable = get_cmap_if_str(new_variable)
+
+            variables.append(new_variable)
+
+        return tuple(variables)
+    
+    def get_field_from_str(self, field_name):
         if field_name.upper() == 'E':
-            return self.solver.E, self.color_E, self.cmap_E, self.norm_E
-        elif field_name.upper() == 'H':
-            return self.solver.H, self.color_H, self.cmap_H, self.norm_H
-        elif field_name.upper() == 'S':
-            return (self.solver.get_poynting(), self.color_S,
-                    self.cmap_S, self.norm_S)
+            return self.solver.E
+        if field_name.upper() == 'H':
+            return self.solver.H
+        if field_name.upper() == 'S':
+            return self.solver.get_poynting()
+        if field_name.lower() == 'energy':
+            return self.solver.get_energy()
     
     def get_fig_and_axs(self, dim):
         field_num = len(self.fields)
@@ -349,7 +369,7 @@ class Visualizer():
         return (self.begin_pos[axis_space[0]], self.end_pos[axis_space[0]],
                 self.begin_pos[axis_space[1]], self.end_pos[axis_space[1]])
     
-    def reduce_data(self, data_space, data_field, resolution=20):
+    def reduce_data(self, data_space, data_field, resolution=25):
         dim = len(data_space)
         index_min = min(range(dim), key=lambda i : len(data_space[i]))
 
@@ -424,7 +444,11 @@ def get_norm_if_str(norm, vmin, vmax):
         if norm.lower() in ('lin', 'linear'):
             return colors.Normalize(vmin=vmin, vmax=vmax)
         elif norm.lower() in ('log', 'logarithmic'):
-            linthresh = max(abs(vmin), 10 ** (round(log10(abs(vmax))) - 5))
+            if vmax < 1e-9:
+                linthresh = 1
+            else:
+                linthresh = max(10 ** (round(log10(abs(vmin)))),
+                                10 ** (round(log10(abs(vmax))) - 5))
             return colors.SymLogNorm(linthresh, vmin=vmin, vmax=vmax)
     else:
         return norm
