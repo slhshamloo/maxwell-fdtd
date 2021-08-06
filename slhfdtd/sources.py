@@ -7,7 +7,7 @@ from .solving import SPEED_LIGHT
 class Source:
     def __init__(self, begin, end, direction=2, step_before=True,
                  additive=True, func=sin, power=1.0,
-                 wavelength=300e-9, freq=None, phase=0.0):
+                 wavelength=None, freq=None, phase=0.0):
         self.begin_pos, self.end_pos = begin, end
         self.direction, self.additive, self.step_before = \
             direction, additive, step_before
@@ -18,7 +18,7 @@ class Source:
             if wavelength == 0:
                 self.omega = 0
             else:
-                self.omega = 2*pi * SPEED_LIGHT/wavelength
+                self.omega = 2*pi * SPEED_LIGHT/self.wavelength
         elif freq is not None:
             if freq == 0:
                 self.wavelength = 0
@@ -26,8 +26,8 @@ class Source:
                 self.wavelength = SPEED_LIGHT/freq
             self.omega = 2*pi * freq
         else:
-            self.wavelength = 500e-9
-            self.omega = 2*pi * SPEED_LIGHT/wavelength
+            self.wavelength = 300e-9
+            self.omega = 2*pi * SPEED_LIGHT/self.wavelength
 
         self.current_time_step = 0
 
@@ -84,7 +84,7 @@ class Source:
 
 class PointSource(Source):
     def __init__(self, pos, direction=2, step_before=True, additive=True,
-                 func=sin, power=1.0, wavelength=300e-9, freq=None, phase=0.0):
+                 func=sin, power=1.0, wavelength=None, freq=None, phase=0.0):
         super().__init__(pos, pos, direction, step_before, additive,
                          func, power, wavelength, freq, phase)
 
