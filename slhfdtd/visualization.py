@@ -18,6 +18,7 @@ class Visualizer():
         self.set_fields()
         self.set_colors()
         self.set_cmap_norms()
+        self.set_interpolation_2d()
         self.set_orientation()
     
     def set_pos(self, begin=(None, None, None), end=(None, None, None),
@@ -37,6 +38,9 @@ class Visualizer():
 
     def set_cmap_norms(self, norms='lin'):
         self.norms = norms
+    
+    def set_interpolation_2d(self, interpolation='nearest'):
+        self.interpolation = interpolation
     
     def set_orientation(self, orientation='v'):
         if orientation.lower() in ('v', 'vertical', 'vert', 'ver'):
@@ -163,7 +167,8 @@ class Visualizer():
         norm = get_norm_if_str(norm, data_field.min(), data_field.max())
 
         pcm = ax.imshow(data_field.T, extent=self.get_bounds_2d(axis_slice),
-                        origin='lower', norm=norm, cmap=cmap)
+                        origin='lower', norm=norm, cmap=cmap,
+                        interpolation=self.interpolation)
         plt.colorbar(pcm, ax=ax)
 
         if color_obj is not None:
@@ -185,7 +190,8 @@ class Visualizer():
         norm = get_norm_if_str(norm, data_field.min(), data_field.max())
 
         pcm = ax.imshow(data_field.T, extent=self.get_bounds_2d(axis_slice),
-                        origin='lower', norm=norm, cmap=cmap)
+                        origin='lower', norm=norm, cmap=cmap,
+                        interpolation=self.interpolation)
         plt.colorbar(pcm, ax=ax)
 
         if color_obj is not None:
@@ -202,7 +208,8 @@ class Visualizer():
                                             slice_coordinate)
         norm = get_norm_if_str(norm, field.min(), field.max())
         pcm = ax.imshow(data_field.T, extent=self.get_bounds_2d(axis_slice),
-                        origin='lower', norm=norm, cmap=cmap)
+                        origin='lower', norm=norm, cmap=cmap,
+                        interpolation=self.interpolation)
         plt.colorbar(pcm, ax=ax)
 
         if color_obj is not None:
@@ -269,7 +276,8 @@ class Visualizer():
         norm = get_norm_if_str(norm, field_magnitude.min(),
                                field_magnitude.max())
         pcm = ax.imshow(field_magnitude, extent=self.get_bounds_2d(axis_slice),
-                        origin='lower', norm=norm, cmap=cmap)
+                        origin='lower', norm=norm, cmap=cmap,
+                        interpolation=self.interpolation)
         cb = plt.colorbar(pcm, ax=ax)
         cb.ax.set_xlabel(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
 
@@ -310,7 +318,8 @@ class Visualizer():
         energy_norm = get_norm_if_str(energy_norm, data_energy.min(),
                                       data_energy.max())
         pcm = ax.imshow(data_energy, extent=self.get_bounds_2d(axis_slice),
-                        origin='lower', norm=energy_norm, cmap=energy_cmap)
+                        origin='lower', norm=energy_norm, cmap=energy_cmap,
+                        interpolation=self.interpolation)
         cb = plt.colorbar(pcm, ax=ax)
         cb.ax.set_xlabel('$U$')
 
