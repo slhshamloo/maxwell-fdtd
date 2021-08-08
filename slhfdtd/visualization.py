@@ -3,7 +3,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import colors, patches, gridspec, cm
 
-from typing import Container
 from copy import copy
 from math import log10
 
@@ -49,6 +48,86 @@ class Visualizer():
             self.orientation = 'h'
         elif orientation.lower() in ('c', 'centered', 'center', 'cen'):
             self.orientation = 'c'
+    
+    def set_color_field(self, field_name, field_color=None, cmap=None,
+                        object_color='lime'):
+        field_index = self.fields.index(field_name)
+
+        if field_color is not None:
+            if isinstance(self.field_colors, str):
+                self.field_colors = len(self.fields) * [self.field_colors]
+                self.field_colors[field_index] = field_color
+            else:
+                self.field_colors = (self.field_colors[:field_index]
+                                     + field_color
+                                     + self.field_colors[field_index + 1:])
+
+        if cmap is not None:
+            if isinstance(self.cmaps, str):
+                self.cmaps = len(self.fields) * [self.cmaps]
+                self.cmaps[field_index] = cmap
+            else:
+                self.cmaps = (self.cmaps[:field_index] + cmap
+                              + self.cmaps[field_index + 1:])
+
+        if self.object_colors is None or isinstance(self.object_colors, str):
+            self.object_colors = len(self.fields) * [self.object_colors]
+            self.object_colors[field_index] = object_color
+        else:
+            self.object_colors = (self.object_colors[:field_index]
+                                  + object_color
+                                  + self.object_colors[field_index + 1:])
+    
+    def set_cmap_norm_field(self, field_name, norm):
+        field_index = self.fields.index(field_name)
+
+        if isinstance(self.norms, str):
+            self.norms = len(self.fields) * [self.norms]
+            self.norms[field_index] = norm
+        else:
+            self.norms = (self.norms[:field_index] + norm
+                            + self.norms[field_index + 1:])
+    
+    def add_field(self, field_name, field_index=None,
+                  field_color='black', cmap='jet',
+                  object_color='white', norm='lin'):
+        if field_index is None:
+            field_index = len(self.fields)
+        self.fields = list(self.fields)
+        self.fields.insert(field_index, field_name)
+
+        if not isinstance(self.field_colors, str):
+            self.field_colors = list(self.field_colors)
+            self.field_colors.insert(field_index, field_color)
+        if not isinstance(self.cmaps, str):
+            self.cmaps = list(self.cmaps)
+            self.cmaps.insert(field_index, cmap)
+        if self.object_colors is not None and \
+                not isinstance(self.object_colors, str):
+            self.object_colors = list(self.object_colors)
+            self.object_colors.insert(field_index, object_color)
+        if not isinstance(self.norms, str):
+            self.norms = list(self.norms)
+            self.norms.insert(field_index, norm)
+    
+    def delete_field(self, field_name):
+        field_index = self.fields.index(field_name)
+        self.fields = list(self.fields)
+        self.fields.pop(field_index)
+
+        if not isinstance(self.field_colors, str):
+            self.field_colors = list(self.field_colors)
+            self.field_colors.pop(field_index)
+        if not isinstance(self.cmaps, str):
+            self.cmaps = list(self.cmaps)
+            self.cmaps.pop(field_index)
+        if self.object_colors is not None and \
+                not isinstance(self.object_colors, str):
+            self.object_colors = list(self.object_colors)
+            self.object_colors.pop(field_index)
+        if not isinstance(self.norms, str):
+            self.norms = list(self.norms)
+            self.norms.pop(field_index)
 
     def plot1d(self, axis_space=0,
                slice_first_coordinate=0, slice_second_coordinate=0):
@@ -360,11 +439,10 @@ class Visualizer():
 
         for variable in (self.field_colors, self.object_colors,
                          self.cmaps, self.norms):
-            if isinstance(variable, Container) \
-                    and not isinstance(variable, str):
-                new_variable = variable[index]
-            else:
+            if isinstance(variable, str):
                 new_variable = variable
+            else:
+                new_variable = variable[index]
 
             if variable == self.cmaps:
                 new_variable = get_cmap_if_str(new_variable)
