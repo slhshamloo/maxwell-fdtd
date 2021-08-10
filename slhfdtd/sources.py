@@ -48,7 +48,8 @@ class Source:
         self.pos = (
             *(slice(begin_c, end_c)
               for (begin_c, end_c) in zip(self.begin_cell, self.end_cell)),
-            int(self.direction)
+            int(self.direction) if self.direction is not None
+            else slice(None)
         )
 
     def set_amplitude(self):
