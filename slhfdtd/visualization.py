@@ -19,6 +19,7 @@ class Visualizer():
         self.set_cmap_norms()
         self.set_interpolation_2d()
         self.set_orientation()
+        self.set_figsize()
     
     def set_pos(self, begin=(None, None, None), end=(None, None, None),
                 crop_boundaries=True):
@@ -41,13 +42,16 @@ class Visualizer():
     def set_interpolation_2d(self, interpolation='lanczos'):
         self.interpolation = interpolation
     
-    def set_orientation(self, orientation='v'):
+    def set_orientation(self, orientation='h'):
         if orientation.lower() in ('v', 'vertical', 'vert', 'ver'):
             self.orientation = 'v'
         elif orientation.lower() in ('h', 'horizontal', 'horiz', 'hor'):
             self.orientation = 'h'
         elif orientation.lower() in ('c', 'centered', 'center', 'cen'):
             self.orientation = 'c'
+    
+    def set_figsize(self, figsize=(7, 5)):
+        self.figsize = figsize
     
     def set_color_field(self, field_name, field_color=None, cmap=None,
                         object_color='lime'):
@@ -463,24 +467,25 @@ class Visualizer():
     
     def get_fig_and_axs(self, dim, field_num):
         if self.orientation == 'v':
-            return plt.subplots(field_num, dim)
+            return plt.subplots(field_num, dim, figsize=self.figsize)
         elif self.orientation == 'h':
-            return plt.subplots(dim, field_num)
+            return plt.subplots(dim, field_num, figsize=self.figsize)
         elif self.orientation == 'c':
             if dim == field_num:
-                return plt.subplots(dim, dim)
+                return plt.subplots(dim, dim, figsize=self.figsize)
             elif dim == 1 and field_num % 2 == 0:
-                fig, axs = plt.subplots(int(field_num / 2), int(field_num / 2))
+                fig, axs = plt.subplots(int(field_num / 2), int(field_num / 2),
+                                        figsize=self.figsize)
                 return fig, axs.flatten()
             elif dim == 1 and field_num == 3:
-                fig = plt.figure()
+                fig = plt.figure(figsize=self.figsize)
                 gs = gridspec.GridSpec(4, 4)
                 axs = np.array((plt.subplot(gs[:2, :2]),
                                 plt.subplot(gs[:2, 2:]),
                                 plt.subplot(gs[2:, 1:3])))
                 return fig, axs
             elif dim == 3 and field_num == 2:
-                fig = plt.figure()
+                fig = plt.figure(figsize=self.figsize)
                 gs = gridspec.GridSpec(7, 11)
                 axs = np.array(
                     (plt.subplot(gs[:3, 3:5]), plt.subplot(gs[4:, 3:5]),
