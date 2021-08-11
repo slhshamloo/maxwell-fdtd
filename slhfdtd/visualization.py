@@ -38,7 +38,7 @@ class Visualizer():
     def set_cmap_norms(self, norms='lin'):
         self.norms = norms
     
-    def set_interpolation_2d(self, interpolation='nearest'):
+    def set_interpolation_2d(self, interpolation='lanczos'):
         self.interpolation = interpolation
     
     def set_orientation(self, orientation='v'):
@@ -233,7 +233,7 @@ class Visualizer():
             draw_object_1d(ax, *self.solver.objects,
                            axis_space=axis_space, color=color_obj)
         
-        ax.set_xlabel(get_axis_name(axis_space))
+        ax.set_xlabel('$' + get_axis_name(axis_space) + '$')
         ax.set_ylabel(get_field_label(field_name, axis_field))
 
     def plot2d_field(self, ax, field_name, axis_field=2, axis_slice=2,
@@ -469,6 +469,9 @@ class Visualizer():
         elif self.orientation == 'c':
             if dim == field_num:
                 return plt.subplots(dim, dim)
+            elif dim == 1 and field_num % 2 == 0:
+                fig, axs = plt.subplots(int(field_num / 2), int(field_num / 2))
+                return fig, axs.flatten()
             elif dim == 1 and field_num == 3:
                 fig = plt.figure()
                 gs = gridspec.GridSpec(4, 4)
@@ -476,9 +479,6 @@ class Visualizer():
                                 plt.subplot(gs[:2, 2:]),
                                 plt.subplot(gs[2:, 1:3])))
                 return fig, axs
-            elif dim == 1 and field_num % 2 == 0:
-                fig, axs = plt.subplots(int(field_num / 2), int(field_num / 2))
-                return fig, axs.flatten()
             elif dim == 3 and field_num == 2:
                 fig = plt.figure()
                 gs = gridspec.GridSpec(7, 11)

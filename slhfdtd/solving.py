@@ -38,7 +38,7 @@ def curl_H(H):
 
 
 class Solver:
-    def __init__(self, length, grid_dist=1e-9, courant_number=None,
+    def __init__(self, length, grid_dist=1e-8, courant_number=None,
                  permittivity=1.0, permeability=1.0, conductivity=0.0,
                  init_E=None, init_H=None):
         self.grid_dist = grid_dist
