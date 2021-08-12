@@ -16,10 +16,11 @@ class Visualizer():
         self.set_pos()
         self.set_fields()
         self.set_colors()
-        self.set_cmap_norms()
+        self.set_norms()
         self.set_interpolation_2d()
         self.set_orientation()
         self.set_figsize()
+        self.set_aspect()
     
     def set_pos(self, begin=(None, None, None), end=(None, None, None),
                 crop_boundaries=True):
@@ -31,18 +32,18 @@ class Visualizer():
         self.fields = fields
     
     def set_colors(self, field_colors=('blue', 'red', 'purple', 'green'),
-                   cmaps=('Blues', 'Reds', 'Purples', 'coolwarm'),
-                   object_colors='lime'):
+                   cmaps=('Blues', 'Reds', 'Purples', 'jet'),
+                   object_colors=('lime', 'lime', 'lime', 'white')):
         self.field_colors, self.cmaps, self.object_colors \
             = field_colors, cmaps, object_colors
 
-    def set_cmap_norms(self, norms='lin'):
+    def set_norms(self, norms='lin'):
         self.norms = norms
     
-    def set_interpolation_2d(self, interpolation='lanczos'):
+    def set_interpolation_2d(self, interpolation=None):
         self.interpolation = interpolation
     
-    def set_orientation(self, orientation='h'):
+    def set_orientation(self, orientation='c'):
         if orientation.lower() in ('v', 'vertical', 'vert', 'ver'):
             self.orientation = 'v'
         elif orientation.lower() in ('h', 'horizontal', 'horiz', 'hor'):
@@ -52,6 +53,9 @@ class Visualizer():
     
     def set_figsize(self, figsize=(7, 5)):
         self.figsize = figsize
+    
+    def set_aspect(self, aspect='auto'):
+        self.aspect = aspect
     
     def set_color_field(self, field_name, field_color=None, cmap=None,
                         object_color='lime'):
@@ -90,7 +94,7 @@ class Visualizer():
             self.norms[field_index] = norm
         else:
             self.norms = (self.norms[:field_index] + norm
-                            + self.norms[field_index + 1:])
+                          + self.norms[field_index + 1:])
     
     def add_field(self, field_name, field_index=None,
                   field_color='black', cmap='jet',
@@ -225,7 +229,7 @@ class Visualizer():
 
     def plot1d_field(self, ax, field_name, axis_space=0, axis_field=2,
                      slice_first_coordinate=0, slice_second_coordinate=0):
-        field, color, color_obj, cmap, norm = \
+        field, color, color_obj, _, _ = \
             self.get_field_varables(field_name)
 
         ax.plot(*self.get_data_1d(field, axis_space, axis_field,
@@ -239,10 +243,11 @@ class Visualizer():
         
         ax.set_xlabel('$' + get_axis_name(axis_space) + '$')
         ax.set_ylabel(get_field_label(field_name, axis_field))
+        ax.set_aspect(self.aspect)
 
     def plot2d_field(self, ax, field_name, axis_field=2, axis_slice=2,
                      slice_coordinate=0):
-        field, color, color_obj, cmap, norm = \
+        field, _, color_obj, cmap, norm = \
             self.get_field_varables(field_name)
         
         data_field = self.get_data_field_2d(
@@ -259,7 +264,7 @@ class Visualizer():
         
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(get_field_label(field_name, axis_field))
-        ax.set_aspect('auto')
+        ax.set_aspect(self.aspect)
 
     def plot2d_magnitude_field(self, ax, field_name, axis_slice=2,
                                slice_coordinate=0):
@@ -281,11 +286,11 @@ class Visualizer():
             draw_object_2d(ax, *self.solver.objects, color=color_obj)
         
         set_axis_labels_2d(ax, axis_slice)
-        ax.set_title(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
-        ax.set_aspect('auto')
+        ax.set_title(r'$\|\,\mathbf{' + field_name + r'}\,\|$')
+        ax.set_aspect(self.aspect)
     
     def plot2d_energy(self, ax, axis_slice=2, slice_coordinate=0):
-        field, color, color_obj, cmap, norm = self.get_field_varables('U')
+        field, _, color_obj, cmap, norm = self.get_field_varables('U')
 
         data_field = self.get_data_field_2d(field, axis_slice,
                                             slice_coordinate)
@@ -300,12 +305,12 @@ class Visualizer():
         
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title('$U$')
-        ax.set_aspect('auto')
+        ax.set_aspect(self.aspect)
     
     def plot2d_vector_field(self, ax, field_name, axis_slice=2,
                             slice_coordinate=0, resolution=25,
                             quiver=True, stream=False):
-        field, color, color_obj, cmap, norm = \
+        field, _, color_obj, cmap, norm = \
             self.get_field_varables(field_name)
         
         data_space, data_field = (self.get_data_space_2d(axis_slice),
@@ -336,19 +341,20 @@ class Visualizer():
 
         sm = cm.ScalarMappable(cmap=cmap, norm=norm)
         cb = plt.colorbar(sm, ax=ax)
-        cb.ax.set_xlabel(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
+        cb.ax.set_xlabel(r'\|\,\mathbf{' + field_name + r'}\,\|$')
 
         if color_obj is not None:
             draw_object_2d(ax, *self.solver.objects, color=color_obj)
 
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(r'$\mathbf{' + field_name + r'}$')
+        ax.set_aspect(self.aspect)
     
     def plot2d_vect_on_mag_field(self, ax, field_name,
                                  axis_slice=2, slice_coordinate=0,
                                  resolution=25, arrow_color='black',
                                  quiver=True, stream=False):
-        field, color, color_obj, cmap, norm = \
+        field, _, color_obj, cmap, norm = \
             self.get_field_varables(field_name)
         
         data_space, data_field = (self.get_data_space_2d(axis_slice),
@@ -362,7 +368,7 @@ class Visualizer():
                         origin='lower', norm=norm, cmap=cmap,
                         interpolation=self.interpolation)
         cb = plt.colorbar(pcm, ax=ax)
-        cb.ax.set_xlabel(r'$\|\|\,\mathbf{' + field_name + r'}\,\|\|$')
+        cb.ax.set_xlabel(r'$\|\,\mathbf{' + field_name + r'}\,\|$')
 
         data_field = np.delete(data_field, axis_slice, -1)
         data_space, data_field = self.reduce_data(data_space, data_field,
@@ -383,7 +389,7 @@ class Visualizer():
 
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title(r'$\mathbf{' + field_name + r'}$')
-        ax.set_aspect('auto') 
+        ax.set_aspect(self.aspect) 
 
     def plot2d_poynting_on_energy(self, ax, axis_slice=2, slice_coordinate=0,
                                   resolution=25, poynting_cmap='Greys',
@@ -428,14 +434,14 @@ class Visualizer():
         
         sm = cm.ScalarMappable(cmap=poynting_cmap, norm=poynting_norm)
         cb = plt.colorbar(sm, ax=ax)
-        cb.ax.set_xlabel(r'$\|\|\,\mathbf{S}\,\|\|$')
+        cb.ax.set_xlabel(r'\|\,\mathbf{S}\,\|$')
 
         if color_obj is not None:
             draw_object_2d(ax, *self.solver.objects, color=color_obj)
 
         set_axis_labels_2d(ax, axis_slice)
         ax.set_title('Energy Flow')
-        ax.set_aspect('auto')     
+        ax.set_aspect(self.aspect)     
     
     def get_field_varables(self, field_name):
         variables = [self.get_field_from_str(field_name)]
@@ -620,7 +626,7 @@ def get_norm_if_str(norm, vmin, vmax):
         if norm.lower() in ('lin', 'linear'):
             return colors.Normalize(vmin=vmin, vmax=vmax)
         elif norm.lower() in ('log', 'logarithmic'):
-            if vmax < 1e-9:
+            if abs(vmax) < 1e-9:
                 linthresh = 1
             elif vmin == 0:
                 linthresh = 10 ** (round(log10(abs(vmax))) - 5)
