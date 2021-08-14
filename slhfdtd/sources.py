@@ -109,7 +109,7 @@ class LineSource(Source):
         ) + (self.direction,)
 
 
-def pulse(theta):
+def square_wave(theta):
     if floor(theta/pi) % 2 == 0:
         return 1
     else:
