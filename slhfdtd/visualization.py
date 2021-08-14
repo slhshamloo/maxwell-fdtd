@@ -14,9 +14,7 @@ class Visualizer():
     def __init__(self, solver):
         self.solver = solver
         self.set_pos()
-        self.set_fields()
-        self.set_colors()
-        self.set_norms()
+        self.set_variables()
         self.set_interpolation_2d()
         self.set_orientation()
         self.set_figsize()
@@ -28,17 +26,17 @@ class Visualizer():
         self.set_bounds(begin, end)
         self.set_cells()
     
-    def set_fields(self, fields = ('E', 'H', 'S', 'U')):
-        self.fields = fields
-    
-    def set_colors(self, field_colors=('blue', 'red', 'purple', 'green'),
-                   cmaps=('Blues', 'Reds', 'Purples', 'jet'),
-                   object_colors=('lime', 'lime', 'lime', 'white')):
-        self.field_colors, self.cmaps, self.object_colors \
-            = field_colors, cmaps, object_colors
-
-    def set_norms(self, norms='lin'):
-        self.norms = norms
+    def set_variables(self, fields = ['E', 'H', 'S', 'U'],
+                      field_colors={'E' : 'blue', 'H' : 'red',
+                                    'S' : 'purple', 'U' : 'black'},
+                      object_colors={'E' : 'lime', 'H' : 'lime',
+                                     'S' : 'lime', 'U' : 'white'},
+                      cmaps={'E' : 'Blues', 'H' : 'Reds',
+                             'S' : 'Purples', 'U' : 'jet'},
+                      norms='lin'):
+        self.fields, self.field_colors, self.object_colors \
+            = fields, field_colors, object_colors
+        self.cmaps, self.norms = cmaps, norms
     
     def set_interpolation_2d(self, interpolation=None):
         self.interpolation = interpolation
@@ -51,91 +49,11 @@ class Visualizer():
         elif orientation.lower() in ('c', 'centered', 'center', 'cen'):
             self.orientation = 'c'
     
-    def set_figsize(self, figsize=(7, 5)):
+    def set_figsize(self, figsize=(6.4, 4.8)):
         self.figsize = figsize
     
     def set_aspect(self, aspect='auto'):
         self.aspect = aspect
-    
-    def set_color_field(self, field_name, field_color=None, cmap=None,
-                        object_color='lime'):
-        field_index = self.fields.index(field_name)
-
-        if field_color is not None:
-            if isinstance(self.field_colors, str):
-                self.field_colors = len(self.fields) * [self.field_colors]
-                self.field_colors[field_index] = field_color
-            else:
-                self.field_colors = (self.field_colors[:field_index]
-                                     + field_color
-                                     + self.field_colors[field_index + 1:])
-
-        if cmap is not None:
-            if isinstance(self.cmaps, str):
-                self.cmaps = len(self.fields) * [self.cmaps]
-                self.cmaps[field_index] = cmap
-            else:
-                self.cmaps = (self.cmaps[:field_index] + cmap
-                              + self.cmaps[field_index + 1:])
-
-        if self.object_colors is None or isinstance(self.object_colors, str):
-            self.object_colors = len(self.fields) * [self.object_colors]
-            self.object_colors[field_index] = object_color
-        else:
-            self.object_colors = (self.object_colors[:field_index]
-                                  + object_color
-                                  + self.object_colors[field_index + 1:])
-    
-    def set_cmap_norm_field(self, field_name, norm):
-        field_index = self.fields.index(field_name)
-
-        if isinstance(self.norms, str):
-            self.norms = len(self.fields) * [self.norms]
-            self.norms[field_index] = norm
-        else:
-            self.norms = (self.norms[:field_index] + norm
-                          + self.norms[field_index + 1:])
-    
-    def add_field(self, field_name, field_index=None,
-                  field_color='black', cmap='jet',
-                  object_color='white', norm='lin'):
-        if field_index is None:
-            field_index = len(self.fields)
-        self.fields = list(self.fields)
-        self.fields.insert(field_index, field_name)
-
-        if not isinstance(self.field_colors, str):
-            self.field_colors = list(self.field_colors)
-            self.field_colors.insert(field_index, field_color)
-        if not isinstance(self.cmaps, str):
-            self.cmaps = list(self.cmaps)
-            self.cmaps.insert(field_index, cmap)
-        if self.object_colors is not None and \
-                not isinstance(self.object_colors, str):
-            self.object_colors = list(self.object_colors)
-            self.object_colors.insert(field_index, object_color)
-        if not isinstance(self.norms, str):
-            self.norms = list(self.norms)
-            self.norms.insert(field_index, norm)
-    
-    def delete_field(self, field_name):
-        field_index = self.fields.index(field_name)
-        self.fields = list(self.fields)
-        self.fields.pop(field_index)
-
-        if not isinstance(self.field_colors, str):
-            self.field_colors = list(self.field_colors)
-            self.field_colors.pop(field_index)
-        if not isinstance(self.cmaps, str):
-            self.cmaps = list(self.cmaps)
-            self.cmaps.pop(field_index)
-        if self.object_colors is not None and \
-                not isinstance(self.object_colors, str):
-            self.object_colors = list(self.object_colors)
-            self.object_colors.pop(field_index)
-        if not isinstance(self.norms, str):
-            self.norms = list(self.norms)
-            self.norms.pop(field_index)
 
     def plot1d(self, axis_space=0,
                slice_first_coordinate=0, slice_second_coordinate=0):
@@ -229,8 +147,7 @@ class Visualizer():
 
     def plot1d_field(self, ax, field_name, axis_space=0, axis_field=2,
                      slice_first_coordinate=0, slice_second_coordinate=0):
-        field, color, color_obj, _, _ = \
-            self.get_field_varables(field_name)
+        field, color, color_obj, _, _ = self.get_field_varables(field_name)
 
         ax.plot(*self.get_data_1d(field, axis_space, axis_field,
                                   slice_first_coordinate,
@@ -241,14 +158,13 @@ class Visualizer():
             draw_object_1d(ax, *self.solver.objects,
                            axis_space=axis_space, color=color_obj)
         
-        ax.set_xlabel('$' + get_axis_name(axis_space) + '$')
+        ax.set_xlabel('$' + get_axis_name(axis_space) + r'(\mathrm{m})$')
         ax.set_ylabel(get_field_label(field_name, axis_field))
         ax.set_aspect(self.aspect)
 
     def plot2d_field(self, ax, field_name, axis_field=2, axis_slice=2,
                      slice_coordinate=0):
-        field, _, color_obj, cmap, norm = \
-            self.get_field_varables(field_name)
+        field, _, color_obj, cmap, norm = self.get_field_varables(field_name)
         
         data_field = self.get_data_field_2d(
             field, axis_slice,slice_coordinate)[..., axis_field]
@@ -268,8 +184,7 @@ class Visualizer():
 
     def plot2d_magnitude_field(self, ax, field_name, axis_slice=2,
                                slice_coordinate=0):
-        field, color, color_obj, cmap, norm = \
-            self.get_field_varables(field_name)
+        field, _, color_obj, cmap, norm = self.get_field_varables(field_name)
         
         data_field = np.sum(
             self.get_data_field_2d(field, axis_slice,slice_coordinate)**2,
@@ -310,8 +225,7 @@ class Visualizer():
     def plot2d_vector_field(self, ax, field_name, axis_slice=2,
                             slice_coordinate=0, resolution=25,
                             quiver=True, stream=False):
-        field, _, color_obj, cmap, norm = \
-            self.get_field_varables(field_name)
+        field, _, color_obj, cmap, norm = self.get_field_varables(field_name)
         
         data_space, data_field = (self.get_data_space_2d(axis_slice),
             self.get_data_field_2d(field, axis_slice, slice_coordinate)
@@ -354,8 +268,7 @@ class Visualizer():
                                  axis_slice=2, slice_coordinate=0,
                                  resolution=25, arrow_color='black',
                                  quiver=True, stream=False):
-        field, _, color_obj, cmap, norm = \
-            self.get_field_varables(field_name)
+        field, _, color_obj, cmap, norm = self.get_field_varables(field_name)
         
         data_space, data_field = (self.get_data_space_2d(axis_slice),
             self.get_data_field_2d(field, axis_slice, slice_coordinate)
@@ -394,7 +307,7 @@ class Visualizer():
     def plot2d_poynting_on_energy(self, ax, axis_slice=2, slice_coordinate=0,
                                   resolution=25, poynting_cmap='Greys',
                                   quiver=True, stream=False):
-        energy, color, color_obj, energy_cmap, energy_norm = \
+        energy, _, color_obj, energy_cmap, energy_norm = \
             self.get_field_varables('U')
         poynting, _, _, _, poynting_norm = self.get_field_varables('S')
         poynting_cmap = get_cmap_if_str(poynting_cmap)
@@ -445,21 +358,20 @@ class Visualizer():
     
     def get_field_varables(self, field_name):
         variables = [self.get_field_from_str(field_name)]
-        index = self.fields.index(field_name)
 
         for variable in (self.field_colors, self.object_colors,
                          self.cmaps, self.norms):
             if isinstance(variable, str):
                 new_variable = variable
             else:
-                new_variable = variable[index]
+                new_variable = variable[field_name]
 
             if variable == self.cmaps:
                 new_variable = get_cmap_if_str(new_variable)
 
             variables.append(new_variable)
 
-        return tuple(variables)
+        return variables
     
     def get_field_from_str(self, field_name):
         if field_name.upper() == 'E':
@@ -657,5 +569,5 @@ def get_field_label(field_name, axis_field):
 def set_axis_labels_2d(ax, axis_slice):
     axis_space = list(range(3))
     axis_space.pop(axis_slice)
-    ax.set_xlabel('$' + get_axis_name(axis_space[0]) + '$')
-    ax.set_ylabel('$' + get_axis_name(axis_space[1]) + '$')
+    ax.set_xlabel('$' + get_axis_name(axis_space[0]) + r'(\mathrm{m})$')
+    ax.set_ylabel('$' + get_axis_name(axis_space[1]) + r'(\mathrm{m})$')
