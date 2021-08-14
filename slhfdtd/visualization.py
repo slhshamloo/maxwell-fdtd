@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from matplotlib import colors, patches, gridspec, cm
 
 from copy import copy
-from math import log10
+from math import log10, ceil
 
 from .boundaries import AutoPML
 from .objects import Slab
@@ -409,7 +409,7 @@ class Visualizer():
                 axs = np.reshape(axs, (2, 3))
                 return fig, axs
             else:
-                width = int(round(field_num ** 0.5))
+                width = int(ceil(field_num ** 0.5))
                 height = int(round(field_num / width))
                 fig, axs = plt.subplots(height, width, figsize=self.figsize)
                 return fig, axs.flatten()
