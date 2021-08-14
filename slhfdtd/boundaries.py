@@ -2,9 +2,9 @@ import numpy as np
 
 
 class Boundary:
-    def __init__(self, begin_x, begin_y, begin_z, end_x, end_y, end_z):
-        self.begin_pos = (begin_x, begin_y, begin_z)
-        self.end_pos = (end_x, end_y, end_z)
+    def __init__(self, begin, end):
+        self.begin_pos = begin
+        self.end_pos = end
 
     def set_solver(self, solver):
         self.set_pos(solver.grid_dist)
@@ -43,13 +43,51 @@ class Boundary:
         pass
 
 
+class Reflector(Boundary):
+    def update_E_after(self):
+        self.solver.H[self.pos] = np.zeros(self.shape)
+
+    def update_H_after(self):
+        self.solver.H[self.pos] = np.zeros(self.shape)
+
+
+class AutoReflector(Boundary):
+    def __init__():
+        pass
+
+    def set_solver(self, solver):
+        if solver.cell_count[0] > 1:
+            solver.add_boundary(Reflector((0, 0, 0),
+                (solver.grid_dist, solver.length[1], solver.length[2])
+            ))
+            solver.add_boundary(Reflector(
+                (solver.length[0] - solver.grid_dist, 0, 0),
+                solver.length
+            ))
+        elif solver.cell_count[1] > 1:
+            solver.add_boundary(Reflector((0, 0, 0),
+                (solver.length[0], solver.grid_dist, solver.length[2])
+            ))
+            solver.add_boundary(Reflector(
+                (0, solver.length[1] - solver.grid_dist, 0),
+                solver.length
+            ))
+        elif solver.cell_count[2] > 1:
+            solver.add_boundary(Reflector((0, 0, 0),
+                (solver.length[0], solver.length[1], solver.grid_dist)
+            ))
+            solver.add_boundary(Reflector(
+                (0, 0, solver.length[2] - solver.grid_dist),
+                solver.length
+            ))
+
+
 class PML(Boundary):
-    def __init__(self, begin_x, begin_y, begin_z, end_x, end_y, end_z,
-                 direction, reverse=False,
+    def __init__(self, begin, end, direction, reverse=False,
                  scaling_factor=1.0, stability_factor=1e-8):
-        super().__init__(begin_x, begin_y, begin_z, end_x, end_y, end_z)
-        self.direction, self.scaling_factor, self.stability_factor = (
-            direction, scaling_factor, stability_factor)
+        super().__init__(begin, end)
+        self.direction, self.scaling_factor, self.stability_factor = \
+            direction, scaling_factor, stability_factor
         self.reverse = reverse
 
     def set_solver(self, solver):
@@ -242,55 +280,48 @@ class AutoPML(Boundary):
 
         if solver.length[0] > 2 * self.thickness:
             solver.add_boundary(PML(
-                0, 0, 0,
-                self.thickness, solver.length[1], solver.length[2],
+                (0, 0, 0),
+                (self.thickness, solver.length[1], solver.length[2]),
                 0, True, self.scaling_factor, self.stability_factor
-            )
-            )
+            ))
             solver.add_boundary(PML(
-                solver.length[0] - self.thickness, 0, 0,
-                *solver.length, 0, False,
+                (solver.length[0] - self.thickness, 0, 0),
+                solver.length, 0, False,
                 self.scaling_factor, self.stability_factor
-            )
-            )
+            ))
 
             self.begin_bound[0] = self.thickness
             self.end_bound[0] = solver.length[0] - self.thickness
 
         if solver.length[1] > 2 * self.thickness:
             solver.add_boundary(PML(
-                0, 0, 0,
-                solver.length[0], self.thickness, solver.length[2],
+                (0, 0, 0),
+                (solver.length[0], self.thickness, solver.length[2]),
                 1, True, self.scaling_factor, self.stability_factor
-            )
-            )
+            ))
             solver.add_boundary(PML(
-                0, solver.length[1] - self.thickness, 0,
-                *solver.length, 1, False,
+                (0, solver.length[1] - self.thickness, 0),
+                solver.length, 1, False,
                 self.scaling_factor, self.stability_factor
-            )
-            )
+            ))
 
             self.begin_bound[1] = self.thickness
             self.end_bound[1] = solver.length[1] - self.thickness
 
         if solver.length[2] > 2 * self.thickness:
             solver.add_boundary(PML(
-                0, 0, 0,
-                solver.length[0], solver.length[1], self.thickness,
+                (0, 0, 0),
+                (solver.length[0], solver.length[1], self.thickness),
                 2, True, self.scaling_factor, self.stability_factor
-            )
-            )
+            ))
             solver.add_boundary(PML(
-                0, 0, solver.length[2] - self.thickness,
-                *solver.length, 2, False,
+                (0, 0, solver.length[2] - self.thickness),
+                solver.length, 2, False,
                 self.scaling_factor, self.stability_factor
-            )
-            )
+            ))
 
             self.begin_bound[2] = self.thickness
             self.end_bound[2] = solver.length[2] - self.thickness
-
 
 class Exact1DAbsorber(Boundary):
     def __init__(self, direction):
