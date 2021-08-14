@@ -45,14 +45,14 @@ class Boundary:
 
 class Reflector(Boundary):
     def update_E_after(self):
-        self.solver.H[self.pos] = np.zeros(self.shape)
+        self.solver.E[self.pos] = np.zeros(self.shape)
 
     def update_H_after(self):
         self.solver.H[self.pos] = np.zeros(self.shape)
 
 
 class AutoReflector(Boundary):
-    def __init__():
+    def __init__(self):
         pass
 
     def set_solver(self, solver):

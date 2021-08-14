@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from matplotlib import colors, patches, gridspec, cm
 
 from copy import copy
-from math import log10
+from math import log10, ceil
 
 from .boundaries import AutoPML
 from .objects import Slab
@@ -385,9 +385,9 @@ class Visualizer():
     
     def get_fig_and_axs(self, dim, field_num):
         if self.orientation == 'v':
-            return plt.subplots(field_num, dim, figsize=self.figsize)
-        elif self.orientation == 'h':
             return plt.subplots(dim, field_num, figsize=self.figsize)
+        elif self.orientation == 'h':
+            return plt.subplots(field_num, dim, figsize=self.figsize)
         elif self.orientation == 'c':
             if dim == field_num:
                 return plt.subplots(dim, dim, figsize=self.figsize)
@@ -409,7 +409,7 @@ class Visualizer():
                 axs = np.reshape(axs, (2, 3))
                 return fig, axs
             else:
-                width = int(round(field_num ** 0.5))
+                width = int(ceil(field_num ** 0.5))
                 height = int(round(field_num / width))
                 fig, axs = plt.subplots(height, width, figsize=self.figsize)
                 return fig, axs.flatten()
