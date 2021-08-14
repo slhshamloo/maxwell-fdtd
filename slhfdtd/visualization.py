@@ -391,10 +391,6 @@ class Visualizer():
         elif self.orientation == 'c':
             if dim == field_num:
                 return plt.subplots(dim, dim, figsize=self.figsize)
-            elif dim == 1 and field_num % 2 == 0:
-                fig, axs = plt.subplots(int(field_num / 2), int(field_num / 2),
-                                        figsize=self.figsize)
-                return fig, axs.flatten()
             elif dim == 1 and field_num == 3:
                 fig = plt.figure(figsize=self.figsize)
                 gs = gridspec.GridSpec(4, 4)
@@ -412,6 +408,11 @@ class Visualizer():
                 )
                 axs = np.reshape(axs, (2, 3))
                 return fig, axs
+            else:
+                width = int(round(field_num ** 0.5))
+                height = int(round(field_num / width))
+                fig, axs = plt.subplots(height, width, figsize=self.figsize)
+                return fig, axs.flatten()
     
     def get_data_1d(self, field, axis_space, axis_field,
                     slice_first_coordinate, slice_second_coordinate):
