@@ -3,7 +3,6 @@
 /dist/
 /slhfdtd.egg-info/
 /slhfdtd/__pycache__/
-/paper/old/
 /paper/*.aux
 /paper/*.log
 /paper/*.out
