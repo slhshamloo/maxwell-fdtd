@@ -28,7 +28,7 @@ class Visualizer():
     
     def set_variables(self, fields = ['E', 'H', 'S', 'U'],
                       field_colors={'E' : 'blue', 'H' : 'red',
-                                    'S' : 'purple', 'U' : 'black'},
+                                    'S' : 'darkorchid', 'U' : 'black'},
                       object_colors={'E' : 'lime', 'H' : 'lime',
                                      'S' : 'lime', 'U' : 'white'},
                       cmaps={'E' : 'Blues', 'H' : 'Reds',
@@ -255,7 +255,7 @@ class Visualizer():
 
         sm = cm.ScalarMappable(cmap=cmap, norm=norm)
         cb = plt.colorbar(sm, ax=ax)
-        cb.ax.set_xlabel(r'\|\,\mathbf{' + field_name + r'}\,\|$')
+        cb.ax.set_xlabel(r'$\|\,\mathbf{' + field_name + r'}\,\|$')
 
         if color_obj is not None:
             draw_object_2d(ax, *self.solver.objects, color=color_obj)
@@ -347,7 +347,7 @@ class Visualizer():
         
         sm = cm.ScalarMappable(cmap=poynting_cmap, norm=poynting_norm)
         cb = plt.colorbar(sm, ax=ax)
-        cb.ax.set_xlabel(r'\|\,\mathbf{S}\,\|$')
+        cb.ax.set_xlabel(r'$\|\,\mathbf{S}\,\|$')
 
         if color_obj is not None:
             draw_object_2d(ax, *self.solver.objects, color=color_obj)
