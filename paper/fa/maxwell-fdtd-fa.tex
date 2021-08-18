@@ -6,7 +6,7 @@
 \author{صالح شاملو احمدی\\دانشگاه صنعتی شریف، دانشکده فیزیک}
 \date{}
 
-\hypersetup{colorlinks=true, citecolor=cyan, urlcolor=blue}
+\hypersetup{colorlinks=true, urlcolor=blue}
 
 \renewcommand\d[1]{\mathop{d#1}}
 \newcommand{\disder}[2]{\frac{\Delta{#1}}{\Delta{#2}}}
@@ -37,6 +37,7 @@
 		\curl{\vb{E}}&=-\pdv{\vb{B}}{t} &(\text{قانون فارادی}), \\
 		\curl{\vb{H}}&=\vb{J}+\pdv{\vb{D}}{t} &(\text{قانون آمپر-ماکسول}).
 	\end{empheq}
+	\lr{\cite{griffiths2013}}
 	در این شکل از معادلات ماکسول، $\rho$ و $\vb{J}$ چگالی بار آزاد و چگالی جریان آزاد را نشان می‌دهند.
 	پس در محیط‌های خطی در نقاطی که منبع (بار و جریان آزاد) وجود ندارد
 	\begin{empheq}[left=\empheqlbrace]{align}
@@ -59,7 +60,7 @@
 	مرسوم است که در الکترومغناطیس محاسباتی به جای میدان $B$، میدان $H$ محاسبه شود.
 	این کمیت در کار تجربی (آزمایشگاهی و صنعتی) سودمندتر است.
 	\section{روش FDTD}
-	روش تفاضل محدود حوزه زمان (FDTD) اولین بار توسط کِین شی-گونگ یی\LTRfootnote{Kane Shee-Gong Yee} در سال 1966 ارائه شد.
+	روش تفاضل محدود حوزه زمان (FDTD) اولین بار توسط کِین شی-گونگ یی\LTRfootnote{Kane Shee-Gong Yee} در سال 1966 ارائه شد \lr{\cite{yee1966}}.
 	دلیل این نامگذاری برای روش این است که میدان‌ها با اختلاف میدان‌های نقاط مجاور به صورت موضعی بدست می‌آیند و همچنین حل
 	روی دامنه زمانی انجام می‌شود و تحول زمانی سیستم را نشان می‌دهد.
 	\subsection{گسسته‌سازی}
@@ -67,17 +68,17 @@
 		\centering
 		\includegraphics[width=0.6\linewidth]{\figpath/yee-scheme/yee-cell}
 		\caption{یک سلول در شبکه یی}
-		\label{yee cell}
+		\label{yeecell}
 	\end{figure}
 	\begin{figure}
 		\centering
 		\includegraphics[width=0.6\linewidth]{\figpath/yee-scheme/yee-grid}
 		\caption{شکل شبکه یی}
-		\label{yee grid}
+		\label{yeegrid}
 	\end{figure}
 	برای دقت بالاتر محاسبات، گسسته‌سازی مطابق شکل به صورت یک در میان برای میدان‌ها انجام می‌شود.
 	با تقسیم فضا به تعدادی مکعب، میدان الکتریکی را وسط اضلاع و میدان مغناطیسی را وسط وجوه سلول‌های مکعبی فضا حساب می‌کنیم.
-	در شکل‌های \ref{yee cell} و \ref{yee grid} می‌توانید شکل شبکه ایجاد شده در فضا را مشاهده کنید.
+	در شکل‌های \ref{yeecell} و \ref{yeegrid} می‌توانید شکل شبکه ایجاد شده در فضا را مشاهده کنید.
 	این روش گسسته‌سازی، \emph{شبکه یی}\LTRfootnote{Yee Lattice/Yee Grid} یا \emph{نگاشت یی}\LTRfootnote{Yee's Scheme} نامیده می‌شود.
 	با این روند با استفاده از خصوصیات هر سلول مکعبی از فضا، میدان‌های مربوط به هر سلول را محاسبه می‌کنیم.
 	
@@ -245,6 +246,7 @@
 		\caption{حتی لایه‌ای با ضخامت از مرتبه نانومتر و رسانایی بسیار کم جلوی عبور مقدار زیادی از میدان را می‌گیرد.}
 	\end{figure}
 	\FloatBarrier\section{شرایط مرزی}
+	\lr{\cite{ufdtd}}
 	اگر در مرزهای فضای شبیه‌سازی تغییری اعمال نکنیم و میدان را در آنجا برابر صفر قرار دهیم، این مرزها مانند آینه عمل می‌کنند
 	و میدان‌ها را بازتاب می‌کنند. در شبیه‌سازی سیستم‌ها به طور معمول سیستم‌ها را داخل فضای آزاد بررسی می‌کنیم؛
 	یعنی محیط به نسبت سیستم مورد بررسی خیلی بزرگ‌تر است و انگار داریم یک بخش کوچک از فضا را بررسی می‌کنیم.
@@ -356,4 +358,13 @@
 		\includegraphics[width=\figwidth]{\figpath/flow}
 		\caption{جریان انرژی و تکانه دوقطبی؛ بردار پوینتینگ با بردار و انرژی با رنگ مشخص شده است.}
 	\end{figure}
+	\FloatBarrier
+	\setLTRbibitems
+	\bibliographystyle{amsalpha}
+	\bibliography{ref}
+	\section*{منابع شکل‌ها}
+	شکل \ref{yeecell}: \\
+	\lr{\parbox{\linewidth}{\url{https://en.wikipedia.org/wiki/File:Yee_cell.png}}} \\ \\
+	شکل \ref{yeegrid}: \\
+	\lr{\parbox{\linewidth}{\url{https://en.wikipedia.org/wiki/File:FDTD_Yee_grid_2d-3d.svg}}}
 \end{document}
