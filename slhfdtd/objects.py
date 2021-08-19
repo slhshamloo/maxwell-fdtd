@@ -100,4 +100,5 @@ class Ball(Object):
                        for (b, e) in zip(self.begin_pos, self.end_pos))
         grid = np.mgrid[slices]
         dist = ((g - c) ** 2 for (g, c) in zip(grid, self.center))
-        self.mask = (dist < self.outer_radius) & (dist > self.inner_radius)
+        self.mask = ((dist < self.outer_radius + self.solver.grid_dist)
+                     & (dist > self.inner_radius - self.solver.grid_dist))
