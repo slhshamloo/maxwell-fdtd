@@ -96,9 +96,14 @@ class Ball(Object):
         self.set_solver_parameters()
     
     def set_pos(self):
-        slices = tuple(slice(b, e, self.solver.grid_dist)
-                       for (b, e) in zip(self.begin_pos, self.end_pos))
+        super().set_pos()
+        cell_counts = (ec - bc for (bc, ec)
+                       in zip(self.begin_cell, self.end_cell))
+        slices = tuple(slice(b, e, complex(0, c))
+            for (b, e, c) in zip(self.begin_pos, self.end_pos, cell_counts)
+        )
         grid = np.mgrid[slices]
-        dist = ((g - c) ** 2 for (g, c) in zip(grid, self.center))
+        dist = (sum((g - c) ** 2 for (g, c) in zip(grid, self.center))) ** 0.5
         self.mask = ((dist < self.outer_radius + self.solver.grid_dist)
                      & (dist > self.inner_radius - self.solver.grid_dist))
+        self.mask = self.mask[:, :, :, None].astype(int)
