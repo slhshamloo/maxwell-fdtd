@@ -5,12 +5,11 @@ from .solving import SPEED_LIGHT
 
 
 class Source:
-    def __init__(self, begin, end, direction=2, step_before=True,
+    def __init__(self, begin, end, direction=2,
                  additive=True, func=sin, power=1.0,
                  wavelength=None, freq=None, phase=0.0):
         self.begin_pos, self.end_pos = begin, end
-        self.direction, self.additive, self.step_before = \
-            direction, additive, step_before
+        self.direction, self.additive = direction, additive
         self.power, self.phase, self.func = power, phase, func
 
         if wavelength is not None:
@@ -84,10 +83,10 @@ class Source:
 
 
 class PointSource(Source):
-    def __init__(self, pos, direction=2, step_before=True, additive=True,
-                 func=sin, power=1.0, wavelength=None, freq=None, phase=0.0):
-        super().__init__(pos, pos, direction, step_before, additive,
-                         func, power, wavelength, freq, phase)
+    def __init__(self, pos, direction=2, additive=True, func=sin,
+                 power=1.0, wavelength=None, freq=None, phase=0.0):
+        super().__init__(pos, pos, direction, additive, func,
+                         power, wavelength, freq, phase)
 
 
 class LineSource(Source):
