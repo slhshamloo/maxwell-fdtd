@@ -85,11 +85,11 @@ class AutoReflector(Boundary):
 
 class ParabolicReflector(Boundary):
     def __init__(self, begin, end, focus, thickness=0.0, direction=1,
-                 angle=0.0, rotation_axis=2):
+                 angle=0.0, rotation_axis=2, translate=(0.0, 0.0, 0.0)):
         super().__init__(begin, end)
-        self.focus = focus
-        self.direction, self.angle, self.rotation_axis, self.thickness = \
-            direction, angle, rotation_axis, thickness
+        self.focus, self.direction = focus, direction
+        self.thickness, self.translate, self.angle, self.rotation_axis = \
+            thickness, translate, angle, rotation_axis
 
     def set_pos(self):
         super().set_pos()
@@ -97,15 +97,17 @@ class ParabolicReflector(Boundary):
             for (b, e, c) in zip(self.begin_pos, self.end_pos, self.shape)
         )
         grid = np.mgrid[slices]
+        b, e = self.begin_pos, self.end_pos
+        for i in range(3):
+            grid[i] -= (b[i] + e[i]) / 2
+        grid[self.direction] -= (b[self.direction] - e[self.direction]) / 2
         grid = rotate3d(grid, self.rotation_axis, self.angle)
+        for i in range(3):
+            grid[i] -= self.translate[i]
 
-        y = grid[self.direction] - self.begin_pos[self.direction]
+        y = grid[self.direction]
         grid.pop(self.direction)
-        b, e = list(self.begin_pos), list(self.end_pos)
-        b.pop(self.direction)
-        e.pop(self.direction)
-        x = ((grid[0] - (b[0] + e[0]) / 2) ** 2
-             + (grid[1] - (b[1] + e[1]) / 2) ** 2)
+        x = grid[0] ** 2 + grid[1] ** 2
 
         self.mask = ((y > x / (4 * self.focus) + self.thickness
                       + self.solver.grid_dist)
