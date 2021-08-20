@@ -1,4 +1,5 @@
 import numpy as np
+from math import sin, cos
 
 
 class Boundary:
@@ -7,13 +8,13 @@ class Boundary:
         self.end_pos = end
 
     def set_solver(self, solver):
-        self.set_pos(solver.grid_dist)
         self.solver = solver
+        self.set_pos()
 
-    def set_pos(self, grid_dist):
-        self.begin_cell = list(round(begin / grid_dist)
+    def set_pos(self):
+        self.begin_cell = list(int(round(begin / self.solver.grid_dist))
                                for begin in self.begin_pos)
-        self.end_cell = list(round(end / grid_dist)
+        self.end_cell = list(int(round(end / self.solver.grid_dist))
                              for end in self.end_pos)
         for i in range(3):
             if self.end_cell[i] == self.begin_cell[i]:
@@ -45,10 +46,10 @@ class Boundary:
 
 class Reflector(Boundary):
     def update_E_after(self):
-        self.solver.E[self.pos] = np.zeros(self.shape)
+        self.solver.E[self.pos] *= 0
 
     def update_H_after(self):
-        self.solver.H[self.pos] = np.zeros(self.shape)
+        self.solver.H[self.pos] *= 0
 
 
 class AutoReflector(Boundary):
@@ -80,6 +81,53 @@ class AutoReflector(Boundary):
                 (0, 0, solver.length[2] - solver.grid_dist),
                 solver.length
             ))
+
+
+class ParabolicReflector(Boundary):
+    def __init__(self, begin, end, focus, thickness=0.0, direction=1,
+                 angle=0.0, rotation_axis=2):
+        super().__init__(begin, end)
+        self.focus = focus
+        self.direction, self.angle, self.rotation_axis, self.thickness = \
+            direction, angle, rotation_axis, thickness
+
+    def set_pos(self):
+        super().set_pos()
+        slices = tuple(slice(b, e, complex(0, c))
+            for (b, e, c) in zip(self.begin_pos, self.end_pos, self.shape)
+        )
+        grid = np.mgrid[slices]
+        grid = rotate3d(grid, self.rotation_axis, self.angle)
+
+        y = grid[self.direction] - self.begin_pos[self.direction]
+        grid.pop(self.direction)
+        b, e = list(self.begin_pos), list(self.end_pos)
+        b.pop(self.direction)
+        e.pop(self.direction)
+        x = ((grid[0] - (b[0] + e[0]) / 2) ** 2
+             + (grid[1] - (b[1] + e[1]) / 2) ** 2)
+
+        self.mask = ((y > x / (4 * self.focus) + self.thickness
+                      + self.solver.grid_dist)
+                     | (y < x / (4 * self.focus) - self.solver.grid_dist))
+        self.mask = self.mask[:, :, :, None].astype(int)
+    
+    def update_E_after(self):
+        self.solver.E[self.pos] *= self.mask
+
+    def update_H_after(self):
+        self.solver.H[self.pos] *= self.mask
+
+
+def rotate3d(grid, axis, angle):
+    rotation_grid = [grid[0], grid[1], grid[2]]
+    rotation_grid.pop(axis)
+    rotation_grid = [
+        rotation_grid[0] * cos(angle) + rotation_grid[1] * sin(angle),
+        rotation_grid[1] * cos(angle) - rotation_grid[0] * sin(angle)
+    ]
+    rotation_grid.insert(axis, grid[axis])
+    return rotation_grid
 
 
 class PML(Boundary):
