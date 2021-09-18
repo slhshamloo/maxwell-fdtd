@@ -93,7 +93,8 @@ class ParabolicReflector(Boundary):
 
     def set_pos(self):
         super().set_pos()
-        slices = tuple(slice(b, e, complex(0, c))
+        slices = tuple(slice(b, e - self.solver.grid_dist, complex(0, c))
+            if e != b else slice(b, e, complex(0, c))
             for (b, e, c) in zip(self.begin_pos, self.end_pos, self.shape)
         )
         grid = np.mgrid[slices]
@@ -107,11 +108,13 @@ class ParabolicReflector(Boundary):
 
         y = grid[self.direction]
         grid.pop(self.direction)
-        x = grid[0] ** 2 + grid[1] ** 2
+        x = (grid[0] ** 2 + grid[1] ** 2)**0.5
+        deriv = 2 * x
+        delta_x = self.thickness * (deriv ** 2 / (1 + deriv ** 2))**0.5
+        delta_y = self.thickness * (1 / (1 + deriv ** 2))**0.5
 
-        self.mask = ((y > x / (4 * self.focus) + self.thickness
-                      + self.solver.grid_dist)
-                     | (y < x / (4 * self.focus) - self.solver.grid_dist))
+        self.mask = ((y > (x + delta_x)**2 / (4 * self.focus) + delta_y)
+                     | (y < x**2 / (4 * self.focus)))
         self.mask = self.mask[:, :, :, None].astype(int)
     
     def update_E_after(self):
