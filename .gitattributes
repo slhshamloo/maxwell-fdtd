@@ -1,1 +1,1 @@
-/simulations/* linguist-language=Python
+*.ipynb linguist-detectable=false
