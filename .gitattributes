@@ -1,2 +1,3 @@
 *.tex linguist-documentation
+*.bib linguist-documentation
 *.ipynb linguist-detectable=false
